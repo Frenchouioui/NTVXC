@@ -113,7 +113,7 @@ export class UniversalPlayer {
           <div class="in-app-sources-wrap" id="inAppSourcesWrap">
             <div class="sources-header">
               <span class="sources-label"><i class="ph-bold ph-television"></i> <span id="sourcePanelTitle">Diffuseurs Vidéo (Lecteur Intégré)</span> (<span id="sourceCount">0</span>) :</span>
-              <span class="sources-hint">Flux directs haute définition • Zéro coupure • Zéro redirection</span>
+              <span class="sources-hint">Flux haute définition sans coupure</span>
             </div>
             <!-- Broadcaster selector chips -->
             <div class="broadcasters-scroll" id="broadcastersScroll"></div>
@@ -475,7 +475,7 @@ export class UniversalPlayer {
       modeBtn.className = `stream-mode-btn ${isSelected ? 'active' : ''} ${isProxy ? 'mode-proxy' : 'mode-direct'}`;
 
       const icon = isProxy ? 'ph-shield-check' : 'ph-lightning';
-      const modeTitle = isProxy ? '🛡️ Proxy Sécurisé (Anti-Bug / FAI)' : '⚡ Flux Direct HD';
+      const modeTitle = isProxy ? 'Proxy Sécurisé (Anti-Bug / FAI)' : 'Flux Direct HD';
 
       modeBtn.innerHTML = `
         <i class="ph-bold ${icon}"></i>
@@ -514,8 +514,8 @@ export class UniversalPlayer {
       chip.rel = 'noreferrer noopener';
       chip.className = 'external-redirect-chip';
 
-      let siteName = 'Site Officiel ↗';
-      const cleanTitle = (stream.title || stream.name || '').replace(/\[[^\]]+\]/g, '').trim();
+      let siteName = 'Site Officiel';
+      const cleanTitle = (stream.title || stream.name || '').replace(/\[[^\]]+\]/g, '').replace(/🌐|↗/g, '').trim();
       if (cleanTitle) {
         siteName = cleanTitle;
       }

@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="marquee-item" data-id="${m.id}" title="Lancer ce direct">
           <span class="marquee-sport">${escapeHtml(m.category || 'Direct')}</span>
           <span class="marquee-title">${escapeHtml(m.title)}</span>
-          <span class="marquee-sources">⚡ ${srcCount} source${srcCount > 1 ? 's' : ''}</span>
+          <span class="marquee-sources">${srcCount} flux</span>
         </div>
       `;
     }).join('');
@@ -324,12 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const s = srv.toLowerCase();
       let label = s.toUpperCase();
       let sClass = 'srv-default';
-      if (s === 'falcon') { label = '🦅 Falcon'; sClass = 'srv-falcon'; }
-      else if (s === 'phoenix') { label = '🔥 Phoenix'; sClass = 'srv-phoenix'; }
-      else if (s === 'dlive') { label = '📺 DLive'; sClass = 'srv-dlive'; }
-      else if (s === 'kobra') { label = '🐍 Kobra'; sClass = 'srv-kobra'; }
-      else if (s === 'titan') { label = '⚡ Titan'; sClass = 'srv-titan'; }
-      return `<span class="mini-server-badge ${sClass}">${label}</span>`;
+      if (s === 'falcon') { label = 'Falcon'; sClass = 'srv-falcon'; }
+      else if (s === 'phoenix') { label = 'Phoenix'; sClass = 'srv-phoenix'; }
+      else if (s === 'dlive') { label = 'DLive'; sClass = 'srv-dlive'; }
+      else if (s === 'kobra') { label = 'Kobra'; sClass = 'srv-kobra'; }
+      else if (s === 'titan') { label = 'Titan'; sClass = 'srv-titan'; }
+      return `<span class="mini-server-badge ${sClass}"><span class="srv-dot"></span>${label}</span>`;
     }).join('');
 
     return `
@@ -363,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <button type="button" class="btn-play-match ${isLive ? 'btn-live-pulse' : ''}">
             <i class="ph-bold ph-play"></i>
-            <span>${isLive ? 'Regarder LIVE' : 'Accéder aux flux'}</span>
+            <span>${isLive ? 'Regarder' : 'Accéder'}</span>
           </button>
         </div>
       </div>
