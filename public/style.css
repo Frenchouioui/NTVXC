@@ -6,28 +6,28 @@
 :root {
   /* Surface Palette (Deep Warm Obsidian + Mineral Frosted Glass) */
   --bg-base: #08090d;
-  --bg-surface: rgba(16, 18, 25, 0.72);
-  --bg-surface-hover: rgba(22, 26, 36, 0.82);
-  --bg-surface-elevated: rgba(24, 28, 40, 0.88);
-  --bg-surface-active: rgba(99, 102, 241, 0.14);
-  --bg-card: rgba(14, 16, 22, 0.68);
-  --bg-card-hover: rgba(20, 24, 34, 0.84);
-  --bg-card-active: rgba(99, 102, 241, 0.12);
+  --bg-surface: rgba(16, 18, 25, 0.75);
+  --bg-surface-hover: rgba(24, 28, 38, 0.85);
+  --bg-surface-elevated: rgba(26, 30, 42, 0.9);
+  --bg-surface-active: rgba(99, 102, 241, 0.15);
+  --bg-card: rgba(14, 16, 23, 0.7);
+  --bg-card-hover: rgba(22, 26, 38, 0.85);
+  --bg-card-active: rgba(99, 102, 241, 0.14);
 
   /* Hairlines & Specular Light Reflection (Apple VisionOS / macOS style) */
   --border-hairline: rgba(255, 255, 255, 0.08);
-  --border-hairline-hover: rgba(255, 255, 255, 0.16);
+  --border-hairline-hover: rgba(255, 255, 255, 0.18);
   --border-glass: rgba(255, 255, 255, 0.08);
   --border-glass-hover: rgba(255, 255, 255, 0.18);
   --border-active: rgba(99, 102, 241, 0.65);
-  --specular-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
-  --specular-subtle: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  --specular-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+  --specular-subtle: inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
 
   /* Shadows (Depth without colored neon mud) */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-glass: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glass: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), 0 16px 40px rgba(0, 0, 0, 0.65);
 
   /* Accent Colors (Used on < 5% of pixels, strict restraint) */
   --primary: #6366f1;
@@ -73,6 +73,21 @@
   padding: 0;
 }
 
+button {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+input {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  outline: none;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--bg-base);
@@ -85,7 +100,7 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Backdrop Texture (Linear-grade micro-ambient atmosphere) */
+/* Backdrop Atmosphere (Refined subtle gradient mesh) */
 .app-backdrop {
   position: fixed;
   inset: 0;
@@ -97,7 +112,7 @@ body {
 }
 
 /* ==========================================================================
-   Header & Navigation Bar
+   Header & Navigation Bar (Frosted Glassmorphism)
    ========================================================================== */
 
 .app-header {
@@ -105,10 +120,10 @@ body {
   top: 0;
   z-index: 1000;
   background: var(--bg-surface);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border-bottom: 1px solid var(--border-hairline);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   height: var(--header-height);
   display: flex;
   align-items: center;
@@ -131,7 +146,7 @@ body {
   gap: 2rem;
 }
 
-/* Brand Identity */
+/* Brand Badge */
 .brand-badge {
   display: flex;
   align-items: center;
@@ -206,12 +221,12 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Frosted Nav Tabs */
+/* Frosted Nav Tabs (Apple Segmented Switcher Style) */
 .nav-tabs {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   padding: 3px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-hairline);
@@ -240,11 +255,11 @@ body {
 }
 
 .nav-tab.active {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.14);
   color: #fff;
   font-weight: 600;
-  box-shadow: var(--specular-highlight), 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--specular-highlight), 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .tab-badge {
@@ -306,8 +321,6 @@ body {
 .search-bar-wrap input {
   flex: 1;
   background: transparent;
-  border: none;
-  outline: none;
   padding: 0.5rem 0;
   color: #fff;
   font-family: var(--font-body);
@@ -319,10 +332,7 @@ body {
 }
 
 .search-clear-btn {
-  background: transparent;
-  border: none;
   color: var(--text-muted);
-  cursor: pointer;
   padding: 2px;
   display: flex;
   align-items: center;
@@ -352,9 +362,9 @@ body {
   right: 0;
   max-height: 460px;
   overflow-y: auto;
-  background: rgba(16, 18, 25, 0.92);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  background: rgba(16, 18, 25, 0.94);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--border-hairline-hover);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-glass);
@@ -440,12 +450,9 @@ body {
 }
 
 .search-footer-btn {
-  background: transparent;
-  border: none;
   color: var(--primary);
   font-size: 0.725rem;
   font-weight: 600;
-  cursor: pointer;
   padding: 2px 6px;
   border-radius: var(--radius-xs);
   transition: var(--transition-fast);
@@ -487,15 +494,15 @@ body {
 }
 
 /* ==========================================================================
-   Broadcast Live Marquee Ticker (Minimalist Sports Ticker)
+   Broadcast Live Marquee Ticker
    ========================================================================== */
 
 .live-marquee-bar {
   display: flex;
   align-items: center;
-  background: rgba(14, 16, 24, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(14, 16, 24, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border-hairline);
   height: 38px;
   overflow: hidden;
@@ -762,11 +769,8 @@ body {
 }
 
 .ctrl-btn {
-  background: transparent;
-  border: none;
   color: #fff;
   font-size: 1.25rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -886,7 +890,6 @@ body {
   font-weight: 600;
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -909,7 +912,7 @@ body {
 }
 
 /* ==========================================================================
-   Sources Switcher Panel (Studio Switcher Design)
+   Sources Switcher Panel
    ========================================================================== */
 
 .sources-panel {
@@ -943,7 +946,6 @@ body {
   color: var(--text-muted);
 }
 
-/* Broadcasters Scrollable Tabs */
 .broadcasters-scroll {
   display: flex;
   flex-wrap: wrap;
@@ -966,7 +968,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 500;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -992,7 +993,6 @@ body {
   font-weight: 600;
 }
 
-/* Stream Modes Row (HD Direct vs Proxy) */
 .stream-modes-row {
   display: flex;
   align-items: center;
@@ -1017,7 +1017,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.775rem;
   font-weight: 600;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -1048,7 +1047,6 @@ body {
   box-shadow: 0 0 5px #10b981;
 }
 
-/* Segregated External Redirections Section */
 .in-app-sources-wrap {
   margin-bottom: 0.85rem;
 }
@@ -1148,16 +1146,16 @@ body {
 }
 
 /* ==========================================================================
-   Filter Bars & Server Switcher
+   Server Selector Bar (Matches) - Segmented Control Styling
    ========================================================================== */
 
-.match-servers-bar {
+.server-selector-bar, .match-servers-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-hairline);
   box-shadow: var(--specular-subtle);
   border-radius: var(--radius-md);
@@ -1165,7 +1163,7 @@ body {
   flex-wrap: wrap;
 }
 
-.match-servers-label {
+.server-bar-label, .match-servers-label {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -1177,11 +1175,11 @@ body {
   letter-spacing: 0.5px;
 }
 
-.match-servers-label i {
+.server-bar-label i, .match-servers-label i {
   color: var(--primary);
 }
 
-.match-server-pills {
+.server-pills-scroll, .match-server-pills {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -1192,7 +1190,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.325rem 0.7rem;
+  padding: 0.35rem 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-sm);
@@ -1200,7 +1198,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.775rem;
   font-weight: 500;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -1210,14 +1207,14 @@ body {
 }
 
 .match-server-pill.active {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 600;
   box-shadow: var(--specular-highlight);
 }
 
-.pill-count {
+.badge-pill-count, .pill-count {
   font-family: var(--font-mono);
   font-size: 0.675rem;
   background: rgba(255, 255, 255, 0.08);
@@ -1226,12 +1223,12 @@ body {
   color: var(--text-muted);
 }
 
-.match-server-pill.active .pill-count {
-  background: rgba(255, 255, 255, 0.16);
+.match-server-pill.active .badge-pill-count, .match-server-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 
-/* Secondary Filter Bar */
+/* Sports Filter Bar */
 .filter-bar {
   display: flex;
   align-items: center;
@@ -1258,7 +1255,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.8rem;
   font-weight: 500;
-  cursor: pointer;
   white-space: nowrap;
   transition: var(--transition-fast);
 }
@@ -1269,8 +1265,8 @@ body {
 }
 
 .filter-chip.active {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
   color: #fff;
   font-weight: 600;
   box-shadow: var(--specular-highlight);
@@ -1340,7 +1336,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -1350,7 +1345,7 @@ body {
 }
 
 /* ==========================================================================
-   Matches Section & Cards Layout (Broadcasting Studio Standard)
+   Matches Section & Cards Layout
    ========================================================================== */
 
 .matches-wrapper {
@@ -1435,7 +1430,7 @@ body {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
   opacity: 0;
   transition: var(--transition-fast);
 }
@@ -1529,11 +1524,8 @@ body {
 }
 
 .btn-fav {
-  background: transparent;
-  border: none;
   color: var(--text-subtle);
   font-size: 1rem;
-  cursor: pointer;
   padding: 2px;
   transition: var(--transition-fast);
   display: flex;
@@ -1545,11 +1537,65 @@ body {
   transform: scale(1.1);
 }
 
-/* Match Card Body (Teams Versus or Simple Title) */
+/* Match Card Body */
 .match-card-body {
-  padding: 0.35rem 0;
+  padding: 0.45rem 0;
 }
 
+/* Apple Sports / Modern Scoreboard Layout */
+.match-scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.match-team-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.team-crest-box {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.team-crest-box .team-badge-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.team-initials {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.team-title {
+  font-family: var(--font-display);
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+/* Legacy container fallback */
 .teams-versus-container {
   display: flex;
   align-items: center;
@@ -1571,21 +1617,21 @@ body {
 }
 
 .team-badge-img {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .team-badge-circle {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-hairline);
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1696,7 +1742,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.775rem;
   font-weight: 600;
-  cursor: pointer;
   transition: var(--transition-fast);
   white-space: nowrap;
 }
@@ -1719,48 +1764,65 @@ body {
 }
 
 /* ==========================================================================
-   Channels 24/7 Grid (Broadcast Stream Library)
+   Channels 24/7 (TV Tab) - Country Chips & Sub-Bar
    ========================================================================== */
 
-.country-chips-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  overflow-x: auto;
-  padding-bottom: 4px;
+.tv-filter-bar {
+  margin-bottom: 1rem;
 }
 
-.country-chip {
+.country-chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+/* Fix for unstyled country buttons: clean frosted glass pill */
+.country-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   padding: 0.4rem 0.85rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-hairline);
+  box-shadow: var(--specular-subtle);
   border-radius: var(--radius-full);
   color: var(--text-secondary);
+  font-family: var(--font-body);
   font-size: 0.775rem;
   font-weight: 500;
-  cursor: pointer;
   white-space: nowrap;
   transition: var(--transition-fast);
 }
 
-.country-chip:hover {
-  background: rgba(255, 255, 255, 0.06);
+.country-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  border-color: var(--border-hairline-hover);
+  transform: translateY(-1px);
 }
 
-.country-chip.active {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+.country-pill.active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
   color: #fff;
   font-weight: 600;
-  box-shadow: var(--specular-highlight);
+  box-shadow: var(--specular-highlight), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.channels-subbar {
+.pill-flag {
+  font-size: 0.95rem;
+}
+
+.pill-name {
+  font-weight: 500;
+}
+
+/* TV Sub-Filters & Quick Search */
+.tv-sub-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1771,45 +1833,51 @@ body {
 
 .tv-search-wrap {
   position: relative;
-  width: 100%;
-  max-width: 380px;
-}
-
-.tv-search-input {
-  width: 100%;
-  padding: 0.5rem 2rem 0.5rem 0.85rem;
-  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-hairline);
   box-shadow: var(--specular-subtle);
   border-radius: var(--radius-sm);
-  color: #fff;
-  font-family: var(--font-body);
-  font-size: 0.825rem;
-  outline: none;
+  padding: 0 0.85rem;
+  width: 100%;
+  max-width: 380px;
   transition: var(--transition-fast);
 }
 
-.tv-search-input:focus {
+.tv-search-wrap:focus-within {
   border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.tv-search-input::placeholder {
+.tv-search-wrap i {
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
+.tv-search-wrap input {
+  flex: 1;
+  padding: 0.5rem 0;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.825rem;
+}
+
+.tv-search-wrap input::placeholder {
   color: var(--text-muted);
 }
 
-.clear-input-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
+.tv-search-wrap button {
   color: var(--text-muted);
-  cursor: pointer;
+  padding: 2px;
 }
 
-.server-pills {
+.tv-search-wrap button:hover {
+  color: #fff;
+}
+
+.server-filter-pills {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -1817,26 +1885,30 @@ body {
 }
 
 .server-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.35rem 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-hairline);
+  box-shadow: var(--specular-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-family: var(--font-body);
   font-size: 0.775rem;
   font-weight: 500;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .server-pill:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.07);
+  border-color: var(--border-hairline-hover);
 }
 
 .server-pill.active {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 600;
   box-shadow: var(--specular-highlight);
@@ -1908,7 +1980,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -1994,7 +2065,6 @@ body {
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -2056,7 +2126,6 @@ body {
   top: 3px;
   right: 3px;
   background: rgba(0, 0, 0, 0.75);
-  border: none;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -2065,7 +2134,6 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
-  cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -2102,11 +2170,8 @@ body {
 }
 
 .btn-play-fav {
-  background: transparent;
-  border: none;
   color: var(--text-muted);
   font-size: 1.25rem;
-  cursor: pointer;
   transition: var(--transition-fast);
 }
 
@@ -2147,7 +2212,6 @@ body {
   max-width: 360px;
 }
 
-/* Sleek Toast (Raycast Feedback Pill) */
 .toast-container {
   position: fixed;
   bottom: 2rem;
@@ -2244,7 +2308,7 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .match-servers-bar {
+  .server-selector-bar, .match-servers-bar {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -2252,5 +2316,14 @@ body {
   .filter-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .tv-sub-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tv-search-wrap {
+    max-width: 100%;
   }
 }

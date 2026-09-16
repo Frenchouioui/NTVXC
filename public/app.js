@@ -290,27 +290,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function cleanCategory(cat) {
+    if (!cat) return 'Sports';
+    return cat
+      .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+      .replace(/^ALL\s+/i, '')
+      .replace(/\s+EVENTS$/i, '')
+      .replace(/&amp;/g, '&')
+      .trim() || 'Sports';
+  }
+
   function renderMatchCard(m, isLive) {
     const isFav = state.favorites.some(f => f.id === m.id);
     const isSelected = state.activeItemId === m.id;
     const sourceCount = Array.isArray(m.sources) ? m.sources.length : 1;
     const timeDisplay = isLive ? '<span class="badge-live-pulse"><span class="dot"></span> LIVE</span>' : `<span class="badge-date"><i class="ph-bold ph-clock"></i> ${formatMatchTime(m.date)}</span>`;
 
-    // Team logos / versus markup
+    // High-precision scoreboard layout
     let bodyContent = '';
     if (m.teams && m.teams.home && m.teams.away) {
       const home = m.teams.home;
       const away = m.teams.away;
       bodyContent = `
-        <div class="teams-versus-container">
-          <div class="team-side home-side">
-            ${home.badge ? `<img src="${home.badge}" class="team-badge-img" alt="${escapeHtml(home.name)}" onerror="this.style.display='none'">` : `<div class="team-badge-circle">${getInitials(home.name)}</div>`}
-            <span class="team-name" title="${escapeHtml(home.name)}">${escapeHtml(home.name)}</span>
+        <div class="match-scoreboard">
+          <div class="match-team-row">
+            <div class="team-crest-box">
+              ${home.badge ? `<img src="${home.badge}" class="team-badge-img" alt="${escapeHtml(home.name)}" onerror="this.style.display='none'">` : `<span class="team-initials">${getInitials(home.name)}</span>`}
+            </div>
+            <span class="team-title" title="${escapeHtml(home.name)}">${escapeHtml(home.name)}</span>
           </div>
-          <span class="versus-tag">VS</span>
-          <div class="team-side away-side">
-            ${away.badge ? `<img src="${away.badge}" class="team-badge-img" alt="${escapeHtml(away.name)}" onerror="this.style.display='none'">` : `<div class="team-badge-circle">${getInitials(away.name)}</div>`}
-            <span class="team-name" title="${escapeHtml(away.name)}">${escapeHtml(away.name)}</span>
+          <div class="match-team-row">
+            <div class="team-crest-box">
+              ${away.badge ? `<img src="${away.badge}" class="team-badge-img" alt="${escapeHtml(away.name)}" onerror="this.style.display='none'">` : `<span class="team-initials">${getInitials(away.name)}</span>`}
+            </div>
+            <span class="team-title" title="${escapeHtml(away.name)}">${escapeHtml(away.name)}</span>
           </div>
         </div>
       `;
@@ -332,12 +345,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return `<span class="mini-server-badge ${sClass}"><span class="srv-dot"></span>${label}</span>`;
     }).join('');
 
+    const headerTag = m.tournament 
+      ? `<span class="match-tournament-tag" title="${escapeHtml(m.tournament)}"><i class="ph-bold ph-trophy"></i> ${escapeHtml(m.tournament)}</span>`
+      : `<span class="match-category-pill">${escapeHtml(cleanCategory(m.category || 'Sports'))}</span>`;
+
     return `
       <div class="match-card ${isSelected ? 'selected' : ''} ${isLive ? 'card-live' : ''}" data-id="${m.id}">
         <div class="match-card-header">
           <div class="match-header-left">
-            <span class="match-category-pill">${escapeHtml(m.category || 'Sports')}</span>
-            ${m.tournament ? `<span class="match-tournament-tag" title="${escapeHtml(m.tournament)}">${escapeHtml(m.tournament)}</span>` : ''}
+            ${headerTag}
           </div>
           <div class="match-header-right">
             ${timeDisplay}

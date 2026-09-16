@@ -409,30 +409,83 @@ function normalizeChannel(ch) {
   };
 }
 
+/**
+ * Intelligent parser to extract teams and tournament from raw match titles
+ */
+export function parseTeamsAndTournament(rawTitle, defaultCat = 'Sports', defaultTourn = '') {
+  let clean = (rawTitle || '')
+    .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+    .replace(/\b(ALL SOCCER EVENTS|ALL BASKETBALL|ALL TENNIS|ALL MOTORSPORTS)\b/gi, '')
+    .trim();
+
+  let tournament = defaultTourn || '';
+  let matchPart = clean;
+
+  if (clean.includes(':')) {
+    const colonIdx = clean.indexOf(':');
+    const prefix = clean.slice(0, colonIdx).trim();
+    const suffix = clean.slice(colonIdx + 1).trim();
+
+    const cleanedPrefix = prefix
+      .replace(/^[a-z]{2}\s+/i, '')
+      .replace(/^[a-z]{2}\s*-\s*/i, '')
+      .trim();
+
+    if (cleanedPrefix.length > 2) {
+      tournament = cleanedPrefix;
+    }
+    matchPart = suffix;
+  }
+
+  let teams = null;
+  const vsMatch = matchPart.match(/^(.+?)\s+(?:vs\.?|v\.|contre)\s+(.+)$/i);
+  if (vsMatch) {
+    let homeName = vsMatch[1].trim();
+    let awayName = vsMatch[2].trim();
+
+    homeName = homeName.replace(/\s+[a-z]{2}$/i, '').replace(/^[a-z]{2}\s+/i, '').trim();
+    awayName = awayName.replace(/\s+[a-z]{2}$/i, '').replace(/^[a-z]{2}\s+/i, '').trim();
+
+    if (homeName.length > 1 && awayName.length > 1) {
+      teams = {
+        home: { name: homeName },
+        away: { name: awayName }
+      };
+    }
+  }
+
+  return { tournament, teams, cleanTitle: clean };
+}
+
 function normalizeMatch(m, server) {
   const rawId = String(m.id || '');
   const id = `ntv-match-${server}-${rawId}`;
-  const title = decodeHtmlEntities(m.title || 'Live Match');
+  const rawTitle = decodeHtmlEntities(m.title || 'Live Match');
   const category = decodeHtmlEntities(m.category || 'Sports');
-  const tournament = decodeHtmlEntities(m.tournament || '');
+  const defaultTourn = decodeHtmlEntities(m.tournament || '');
+
+  const parsed = parseTeamsAndTournament(rawTitle, category, defaultTourn);
+  const title = parsed.cleanTitle || rawTitle;
+  const tournament = parsed.tournament || defaultTourn;
   const date = m.date ? Number(m.date) : Date.now();
   const isLive = m.live === true || m.status === 'live';
-  const poster = m.poster
-    ? (m.poster.startsWith('http') ? m.poster : `${CONFIG.NTV_BASE_URL}${m.poster}`)
-    : generateMatchPoster(title, category);
 
   const sources = (Array.isArray(m.sources) ? m.sources : []).map(s => ({
     ...s,
     server: s.server || server
   }));
 
-  let teams = null;
+  let teams = parsed.teams;
   if (m.teams && m.teams.home && m.teams.away) {
     teams = {
       home: { ...m.teams.home, name: decodeHtmlEntities(m.teams.home.name || '') },
       away: { ...m.teams.away, name: decodeHtmlEntities(m.teams.away.name || '') }
     };
   }
+
+  const poster = m.poster
+    ? (m.poster.startsWith('http') ? m.poster : `${CONFIG.NTV_BASE_URL}${m.poster}`)
+    : generateMatchPoster(title, tournament || category);
 
   return {
     id,
@@ -483,89 +536,98 @@ function getBrandTheme(name) {
 }
 
 /**
- * Modern 16:9 widescreen channel badge generator without duplicate titles
+ * Modern widescreen obsidian glass channel slate (Linear / Apple TV standard)
  */
 export function generateChannelPoster(name, country = '') {
-  const theme = getBrandTheme(name);
-  // Clean punctuation and extraneous words
   const clean = (name || '')
     .replace(/[()[\]{}_:\-.,/\\#|]/g, ' ')
     .replace(/France|USA|UK|Spain|HD|FHD|\d+fps|1080p|720p/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 
-  let displayTag = theme.tag;
-
-  if (displayTag === 'TV') {
-    const words = clean.split(/\s+/).filter(w => w.length > 0);
-    if (words.length >= 2) {
-      displayTag = (words[0][0] + words[1][0]).toUpperCase();
-    } else if (words.length === 1 && words[0].length <= 8) {
-      displayTag = words[0].toUpperCase();
-    } else if (words.length === 1) {
-      displayTag = words[0].slice(0, 4).toUpperCase();
-    } else {
-      displayTag = 'TV LIVE';
-    }
+  const words = clean.split(/\s+/).filter(w => w.length > 0);
+  let badgeText = '';
+  if (words.length >= 2) {
+    badgeText = (words[0][0] + words[1][0]).toUpperCase();
+  } else if (words.length === 1 && words[0].length <= 5) {
+    badgeText = words[0].toUpperCase();
+  } else if (words.length === 1) {
+    badgeText = words[0].slice(0, 3).toUpperCase();
+  } else {
+    badgeText = 'TV';
   }
+
+  const shortName = clean.slice(0, 22).toUpperCase();
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
     <defs>
-      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="${theme.c1}"/>
-        <stop offset="100%" stop-color="${theme.c2}"/>
+      <linearGradient id="bgObsidian" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0E1015"/>
+        <stop offset="50%" stop-color="#14161F"/>
+        <stop offset="100%" stop-color="#0A0B0E"/>
       </linearGradient>
-      <radialGradient id="glowSpot" cx="50%" cy="50%" r="60%">
-        <stop offset="0%" stop-color="${theme.accent}" stop-opacity="0.35"/>
-        <stop offset="60%" stop-color="${theme.accent}" stop-opacity="0.08"/>
-        <stop offset="100%" stop-color="${theme.accent}" stop-opacity="0"/>
-      </radialGradient>
-      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      <linearGradient id="glassPill" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0.02)"/>
+      </linearGradient>
+      <pattern id="microDots" width="16" height="16" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="0.75" fill="rgba(255,255,255,0.035)"/>
       </pattern>
     </defs>
-    <!-- Background Card -->
-    <rect width="320" height="180" rx="12" fill="url(#bgGrad)"/>
-    <rect width="320" height="180" fill="url(#grid)"/>
-    <circle cx="160" cy="90" r="95" fill="url(#glowSpot)"/>
-    <rect x="1" y="1" width="318" height="178" rx="11" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <!-- Frame -->
+    <rect width="320" height="180" rx="10" fill="url(#bgObsidian)"/>
+    <rect width="320" height="180" fill="url(#microDots)"/>
+    <rect x="0.5" y="0.5" width="319" height="179" rx="9.5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
 
-    <!-- Central Broadcast Badge -->
-    <rect x="55" y="44" width="210" height="72" rx="16" fill="rgba(10,12,20,0.65)" stroke="${theme.accent}" stroke-width="1.8" stroke-opacity="0.6"/>
-    <text x="160" y="88" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Outfit', sans-serif" font-size="20" font-weight="900" fill="${theme.accent}" text-anchor="middle" letter-spacing="1.5">
-      ${escapeXml(displayTag)}
+    <!-- Subtle Center Frosted Plate -->
+    <rect x="36" y="38" width="248" height="84" rx="10" fill="url(#glassPill)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    
+    <!-- Channel Monogram Emblem -->
+    <text x="160" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Inter Tight', 'Inter', sans-serif" font-size="28" font-weight="700" fill="#F7F8F8" text-anchor="middle" letter-spacing="-0.03em">
+      ${escapeXml(badgeText)}
     </text>
 
-    <!-- Top-Right Live Pulse Dot -->
-    <circle cx="295" cy="22" r="3.5" fill="#ef4444"/>
-    <circle cx="295" cy="22" r="7.5" fill="#ef4444" fill-opacity="0.35"/>
+    <!-- Subtitle / Channel Name -->
+    <text x="160" y="105" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="500" fill="#9CA3AF" text-anchor="middle" letter-spacing="0.08em">
+      ${escapeXml(shortName)}
+    </text>
 
     <!-- Top-Left Quality Pill -->
-    <rect x="16" y="14" width="38" height="18" rx="4" fill="rgba(255,255,255,0.08)"/>
-    <text x="35" y="27" font-family="sans-serif" font-size="9" font-weight="800" fill="rgba(255,255,255,0.75)" text-anchor="middle" letter-spacing="0.5">24/7</text>
+    <rect x="14" y="12" width="46" height="18" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="37" y="24" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="600" fill="#9CA3AF" text-anchor="middle" letter-spacing="0.05em">1080p</text>
+
+    <!-- Top-Right Live Dot -->
+    <circle cx="304" cy="21" r="3" fill="#22C55E"/>
+    <circle cx="304" cy="21" r="6" fill="#22C55E" fill-opacity="0.2"/>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${safeEncodeUriComponent(svg)}`;
 }
 
 export function generateMatchPoster(title, category = 'Live Sports') {
-  const safeTitle = Array.from(title || '').slice(0, 24).join('');
-  const safeCat = Array.from(category || '').slice(0, 20).join('');
+  const safeTitle = Array.from(title || '').slice(0, 36).join('');
+  const safeCat = Array.from(category || '').slice(0, 24).join('').toUpperCase();
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
     <defs>
-      <linearGradient id="gradMatch" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0F1016"/>
-        <stop offset="100%" stop-color="#1F1B2C"/>
+      <linearGradient id="bgMatchObsidian" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0E1015"/>
+        <stop offset="100%" stop-color="#161822"/>
       </linearGradient>
     </defs>
-    <rect width="300" height="450" rx="16" fill="url(#gradMatch)" stroke="#8b5cf6" stroke-opacity="0.4" stroke-width="2"/>
-    <rect x="20" y="24" width="70" height="26" rx="6" fill="#ef4444"/>
-    <text x="55" y="42" font-family="sans-serif" font-size="12" font-weight="bold" fill="#FFFFFF" text-anchor="middle">● LIVE</text>
-    <circle cx="150" cy="180" r="50" fill="#8b5cf6" fill-opacity="0.2" stroke="#8b5cf6" stroke-width="2"/>
-    <polygon points="144,160 166,180 144,200" fill="#8b5cf6"/>
-    <text x="150" y="280" font-family="sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">${escapeXml(safeTitle)}</text>
-    <text x="150" y="315" font-family="sans-serif" font-size="13" font-weight="500" fill="#a78bfa" text-anchor="middle">${escapeXml(safeCat)}</text>
+    <rect width="320" height="180" rx="10" fill="url(#bgMatchObsidian)"/>
+    <rect x="0.5" y="0.5" width="319" height="179" rx="9.5" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+    
+    <rect x="14" y="14" width="56" height="20" rx="4" fill="rgba(34,197,94,0.12)" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+    <circle cx="24" cy="24" r="2.5" fill="#22c55e"/>
+    <text x="44" y="27.5" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" fill="#86efac" text-anchor="middle">LIVE</text>
+    
+    <text x="160" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Inter Tight', 'Inter', sans-serif" font-size="14" font-weight="600" fill="#F7F8F8" text-anchor="middle">
+      ${escapeXml(safeTitle)}
+    </text>
+    <text x="160" y="112" font-family="'JetBrains Mono', monospace" font-size="9.5" font-weight="500" fill="#9CA3AF" text-anchor="middle" letter-spacing="0.08em">
+      ${escapeXml(safeCat)}
+    </text>
   </svg>`;
 
   return `data:image/svg+xml;utf8,${safeEncodeUriComponent(svg)}`;
