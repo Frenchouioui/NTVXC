@@ -466,16 +466,23 @@ export class UniversalPlayer {
     });
 
     uniqueStreams.forEach(entry => {
-      const { stream, originalIdx } = entry;
       const isProxy = (stream.name || '').includes('Proxy') || (stream.title || '').includes('Proxy');
+      const isEmbed = stream.isEmbed || (stream.url && !stream.url.includes('.m3u8'));
       const isSelected = originalIdx === this.currentSourceIdx;
 
       const modeBtn = document.createElement('button');
       modeBtn.type = 'button';
-      modeBtn.className = `stream-mode-btn ${isSelected ? 'active' : ''} ${isProxy ? 'mode-proxy' : 'mode-direct'}`;
+      modeBtn.className = `stream-mode-btn ${isSelected ? 'active' : ''} ${isProxy ? 'mode-proxy' : (isEmbed ? 'mode-embed' : 'mode-direct')}`;
 
-      const icon = isProxy ? 'ph-shield-check' : 'ph-lightning';
-      const modeTitle = isProxy ? 'Proxy Sécurisé (Anti-Bug / FAI)' : 'Flux Direct HD';
+      let icon = 'ph-lightning';
+      let modeTitle = 'Flux Direct HD';
+      if (isProxy) {
+        icon = 'ph-shield-check';
+        modeTitle = 'Proxy Sécurisé (Anti-Bug / FAI)';
+      } else if (isEmbed) {
+        icon = 'ph-frame-corners';
+        modeTitle = 'Lecteur Intégré';
+      }
 
       modeBtn.innerHTML = `
         <i class="ph-bold ${icon}"></i>
@@ -570,22 +577,84 @@ export class UniversalPlayer {
   async playStream(stream) {
     this.currentStream = stream;
     this.showError(false);
+    this.hideExternalRedirectCard();
 
-    // Case 1: Pure web link
-    if (stream.externalUrl && !stream.url) {
-      this.showLoading(false);
-      window.open(stream.externalUrl, '_blank', 'noopener,noreferrer');
+    // Case 1: Embed Iframe Stream (loads inside player without popup!)
+    if (stream.isEmbed || (stream.url && (stream.url.includes('embed') || stream.url.includes('player') || !stream.url.includes('.m3u8')))) {
+      this.playIframe(stream.url);
       return;
     }
 
     // Case 2: HLS Direct / Proxy Video Stream
     if (stream.url) {
       this.playHls(stream.url);
+      return;
+    }
+
+    // Case 3: Pure web link -> DO NOT auto-redirect! Show clean in-player action card
+    if (stream.externalUrl) {
+      this.showExternalRedirectCard(stream);
+      return;
+    }
+  }
+
+  showExternalRedirectCard(stream) {
+    this.destroyHls();
+    this.videoEl.style.display = 'none';
+    this.controls.style.display = 'none';
+    this.iframeEl.style.display = 'none';
+    this.showLoading(false);
+
+    let promptEl = document.getElementById('externalPromptOverlay');
+    if (!promptEl) {
+      promptEl = document.createElement('div');
+      promptEl.id = 'externalPromptOverlay';
+      promptEl.className = 'external-stream-prompt';
+      document.getElementById('videoContainer').appendChild(promptEl);
+    }
+
+    const cleanUrl = (stream.externalUrl || '')
+      .replace(/\/stream\/stream-(\d+)\.php/, '/watch.php?id=$1')
+      .replace(/dlhd\.st|dlhd\.sx|daddylive\.(?:me|sx|mp)/g, 'dlive.sx');
+
+    promptEl.style.display = 'flex';
+    promptEl.innerHTML = `
+      <div class="prompt-icon-ring">
+        <i class="ph-bold ph-arrow-square-out"></i>
+      </div>
+      <h3 class="prompt-title">${this.escapeHtml(stream.name || 'Diffusion Partenaire')}</h3>
+      <p class="prompt-desc">Ce diffuseur requiert un accès sur son portail officiel. Cliquez ci-dessous pour ouvrir la diffusion sécurisée dans un nouvel onglet :</p>
+      <div class="prompt-actions">
+        <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="btn-open-external-stream">
+          <i class="ph-bold ph-play"></i>
+          <span>Ouvrir sur le site officiel ↗</span>
+        </a>
+      </div>
+    `;
+
+    const openBtn = promptEl.querySelector('.btn-open-external-stream');
+    if (openBtn) {
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
+        if (win) {
+          win.opener = null;
+          win.location.href = cleanUrl;
+        }
+      });
+    }
+  }
+
+  hideExternalRedirectCard() {
+    const promptEl = document.getElementById('externalPromptOverlay');
+    if (promptEl) {
+      promptEl.style.display = 'none';
     }
   }
 
   playIframe(url) {
     this.destroyHls();
+    this.hideExternalRedirectCard();
     this.videoEl.style.display = 'none';
     this.controls.style.display = 'none';
 
@@ -595,6 +664,7 @@ export class UniversalPlayer {
   }
 
   playHls(streamUrl) {
+    this.hideExternalRedirectCard();
     this.iframeEl.style.display = 'none';
     this.iframeEl.src = 'about:blank';
     this.videoEl.style.display = 'block';

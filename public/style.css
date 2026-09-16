@@ -73,6 +73,29 @@
   padding: 0;
 }
 
+/* Global Dark Scrollbar Theme (No white native bars) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(8, 9, 13, 0.95);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+* {
+  scrollbar-color: rgba(255, 255, 255, 0.18) rgba(8, 9, 13, 0.95);
+}
+
 button {
   border: none;
   background: transparent;
@@ -1039,6 +1062,88 @@ body {
   box-shadow: inset 0 1px 0 rgba(99, 102, 241, 0.2);
 }
 
+.stream-mode-btn.active.mode-embed {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #7dd3fc;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.2);
+}
+
+/* In-Player External Stream Card */
+.external-stream-prompt {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: radial-gradient(circle at 50% 40%, rgba(26, 32, 48, 0.8) 0%, rgba(8, 9, 13, 0.98) 100%);
+  backdrop-filter: blur(16px);
+  gap: 1.15rem;
+}
+
+.prompt-icon-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: #818cf8;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+}
+
+.prompt-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.prompt-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+.prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+
+.btn-open-external-stream {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.35rem;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  transition: var(--transition-fast);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-open-external-stream:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
+}
+
 .source-live-indicator {
   width: 5px;
   height: 5px;
@@ -1152,8 +1257,8 @@ body {
 .server-selector-bar, .match-servers-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-start;
+  gap: 0.85rem;
   padding: 0.5rem 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-hairline);
@@ -1173,6 +1278,7 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .server-bar-label i, .match-servers-label i {
@@ -1244,6 +1350,14 @@ body {
   gap: 0.4rem;
   overflow-x: auto;
   padding-bottom: 2px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.filter-categories-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .filter-chip {
@@ -1776,8 +1890,15 @@ body {
   align-items: center;
   gap: 0.45rem;
   overflow-x: auto;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+  padding-bottom: 4px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.country-chips-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Fix for unstyled country buttons: clean frosted glass pill */

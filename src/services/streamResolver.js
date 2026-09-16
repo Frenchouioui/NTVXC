@@ -331,16 +331,20 @@ export async function resolveMatchStream(matchId, baseUrl) {
       const serverLower = (src.server || match.server || 'kobra').toLowerCase();
       const ntvOfficialUrl = `https://ntv.cx/watch/${serverLower}/${match.rawId || match.id}?source=${i}`;
 
+      // In-app player stream (loads inside player iframe without external popup!)
+      streams.push({
+        name: `NTVio • [${serverName}]`,
+        title: `⚽ Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
+        url: embedUrl,
+        isEmbed: true,
+        behaviorHints: { notWebReady: false }
+      });
+
+      // Optional secondary external link
       streams.push({
         name: `NTV.cx • [Officiel]`,
         title: `🌐 NTV.cx: ${label} ↗`,
         externalUrl: ntvOfficialUrl,
-        isExternal: true
-      });
-      streams.push({
-        name: `Embed.st • [Lecteur Web]`,
-        title: `⚡ Lecteur Web: ${label} ↗`,
-        externalUrl: embedUrl,
         isExternal: true
       });
       continue;
