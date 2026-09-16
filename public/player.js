@@ -466,6 +466,7 @@ export class UniversalPlayer {
     });
 
     uniqueStreams.forEach(entry => {
+      const { stream, originalIdx } = entry;
       const isProxy = (stream.name || '').includes('Proxy') || (stream.title || '').includes('Proxy');
       const isEmbed = stream.isEmbed || (stream.url && !stream.url.includes('.m3u8'));
       const isSelected = originalIdx === this.currentSourceIdx;
