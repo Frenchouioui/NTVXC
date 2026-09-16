@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.dockerignore
+.vscode
+.idea
+*.log
+scratch
+.system_generated
+.tempmediaStorage
+.user_uploaded

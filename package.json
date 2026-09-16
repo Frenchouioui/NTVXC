@@ -1,0 +1,25 @@
+{
+  "name": "ntvio-stremio-addon",
+  "version": "1.0.0",
+  "description": "Stremio Live TV & Sports Addon powered by NTV.cx",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": [
+    "stremio",
+    "stremio-addon",
+    "live-tv",
+    "sports",
+    "iptv",
+    "ntv"
+  ],
+  "author": "NTVio",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

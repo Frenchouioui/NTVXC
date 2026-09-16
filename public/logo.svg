@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#ffd700" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f1016" />
+      <stop offset="100%" stop-color="#181a24" />
+    </linearGradient>
+    <filter id="neon" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" stroke="url(#glowGrad)" stroke-width="6"/>
+  <!-- TV Screen outline -->
+  <rect x="80" y="110" width="352" height="250" rx="36" fill="#13141f" stroke="#2a2d3d" stroke-width="4"/>
+  <!-- Play Polygon glowing -->
+  <polygon points="215,175 335,235 215,295" fill="url(#glowGrad)" filter="url(#neon)"/>
+  <!-- TV Stand -->
+  <path d="M210 370 L190 415 L322 415 L302 370 Z" fill="#202330" />
+  <!-- Live Dot -->
+  <circle cx="115" cy="145" r="10" fill="#ef4444"/>
+  <circle cx="115" cy="145" r="18" fill="#ef4444" fill-opacity="0.3"/>
+  <!-- Antenna / Signal waves -->
+  <path d="M200 70 Q256 95 312 70" fill="none" stroke="url(#glowGrad)" stroke-width="6" stroke-linecap="round"/>
+</svg>

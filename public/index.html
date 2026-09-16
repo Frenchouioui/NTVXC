@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NTVio Live • Matchs en Direct & Chaînes TV 24/7</title>
+  <meta name="description" content="Regardez tous les matchs de sport en direct et plus de 3 400 chaînes de télévision mondiales sans coupure avec le lecteur haute performance NTVio Live.">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <!-- HLS.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
+  <!-- CSS -->
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="app-body">
+  <div class="ambient-glow glow-primary"></div>
+  <div class="ambient-glow glow-secondary"></div>
+
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a href="/" class="brand-badge">
+          <div class="brand-logo-wrap">
+            <img src="/logo.svg" alt="NTVio Logo" width="36" height="36">
+            <span class="live-dot-pulse"></span>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">NTV<span>io</span></span>
+            <span class="brand-tag">LIVE</span>
+          </div>
+        </a>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="nav-tabs" id="navTabs">
+          <button type="button" class="nav-tab active" data-tab="sports">
+            <i class="ph-bold ph-soccer-ball"></i>
+            <span>Matchs en Direct</span>
+            <span class="tab-badge" id="liveMatchBadge">● LIVE</span>
+          </button>
+          <button type="button" class="nav-tab" data-tab="tv">
+            <i class="ph-bold ph-television"></i>
+            <span>Chaînes 24/7</span>
+            <span class="tab-badge pill-purple" id="tvCountBadge">3 400+</span>
+          </button>
+          <button type="button" class="nav-tab" data-tab="favorites">
+            <i class="ph-bold ph-star"></i>
+            <span>Favoris</span>
+            <span class="tab-badge pill-gold" id="favCountBadge" style="display:none;">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Center: Global Quick Search (Matches + Channels) -->
+      <div class="header-search">
+        <div class="search-bar-wrap">
+          <i class="ph ph-magnifying-glass search-icon"></i>
+          <input type="text" id="globalSearchInput" placeholder="Rechercher un match, une équipe ou une chaîne (ex: Real, Canal+, F1...)" autocomplete="off">
+          <button type="button" class="search-clear-btn" id="searchClearBtn" style="display: none;"><i class="ph-bold ph-x"></i></button>
+          <span class="search-kbd-hint">/</span>
+        </div>
+        <!-- Instant Global Search Dropdown -->
+        <div class="global-search-dropdown" id="globalSearchDropdown" style="display: none;"></div>
+      </div>
+
+      <!-- Right: Live stats pill & quick actions -->
+      <div class="header-right">
+        <div class="stats-pill" id="statsPill">
+          <span class="live-dot-mini"></span>
+          <span id="statsLiveText">Chargement...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Broadcast Live Marquee Ticker (DLive style) -->
+  <div class="live-marquee-bar" id="liveMarqueeBar" style="display: none;">
+    <div class="marquee-tag">
+      <span class="live-pulse-dot"></span>
+      <span>EN DIRECT</span>
+    </div>
+    <div class="marquee-track-wrap">
+      <div class="marquee-track" id="marqueeTrack"></div>
+    </div>
+  </div>
+
+  <main class="app-layout">
+    <!-- Active Video Player Container -->
+    <section class="player-section" id="playerSection">
+      <div id="universalPlayerContainer">
+        <!-- Player is dynamically rendered by player.js -->
+      </div>
+    </section>
+
+    <!-- Content Sections Area -->
+    <div class="content-container">
+
+      <!-- ================= 1. SPORTS TAB ================= -->
+      <section class="tab-content active" id="tabSports">
+        <!-- NTV-style Server Selector Bar -->
+        <div class="server-selector-bar">
+          <span class="server-bar-label"><i class="ph-bold ph-hard-drives"></i> Serveurs :</span>
+          <div class="server-pills-scroll" id="matchServerPills">
+            <button type="button" class="match-server-pill active" data-server="">
+              <span>⚡ Tous les serveurs</span>
+              <span class="badge-pill-count" id="countAllServers">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="falcon">
+              <span>🦅 Falcon</span>
+              <span class="badge-pill-count pill-live" id="countFalcon">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="phoenix">
+              <span>🔥 Phoenix</span>
+              <span class="badge-pill-count" id="countPhoenix">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="dlive">
+              <span>📺 DLive</span>
+              <span class="badge-pill-count" id="countDlive">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="kobra">
+              <span>🐍 Kobra</span>
+              <span class="badge-pill-count" id="countKobra">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="raptor">
+              <span>🦖 Raptor</span>
+              <span class="badge-pill-count" id="countRaptor">...</span>
+            </button>
+            <button type="button" class="match-server-pill" data-server="titan">
+              <span>⚡ Titan</span>
+              <span class="badge-pill-count" id="countTitan">...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sports Filter Bar -->
+        <div class="filter-bar">
+          <div class="filter-categories-scroll" id="sportFilters">
+            <button type="button" class="filter-chip active" data-sport="All">
+              <span>Tous les sports</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Football">
+              <span>⚽ Football</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Basketball">
+              <span>🏀 Basketball</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Tennis">
+              <span>🎾 Tennis</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Motorsports">
+              <span>🏎️ F1 & Auto</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Wrestling">
+              <span>🥊 Combat & WWE</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="Rugby">
+              <span>🏉 Rugby</span>
+            </button>
+            <button type="button" class="filter-chip" data-sport="DLive Events">
+              <span>⚡ DLive Live</span>
+            </button>
+          </div>
+
+          <div class="filter-tools">
+            <label class="toggle-live-only" id="toggleLiveOnlyLabel">
+              <input type="checkbox" id="liveOnlyCheckbox">
+              <span class="toggle-track"></span>
+              <span class="toggle-text">🔴 En direct uniquement</span>
+            </label>
+            <button type="button" class="btn-refresh" id="refreshMatchesBtn" title="Actualiser la liste">
+              <i class="ph-bold ph-arrows-clockwise" id="refreshIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Matches Grid -->
+        <div class="section-title-row">
+          <h2 class="section-heading" id="sportsHeading">Événements Sportifs en Direct & à Venir</h2>
+          <span class="section-count" id="matchesCountText">Chargement...</span>
+        </div>
+
+        <div class="matches-wrapper" id="sportsGrid">
+          <div class="loading-state-box">
+            <div class="spinner-ring"></div>
+            <span>Chargement des événements sportifs en direct...</span>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= 2. TV CHANNELS 24/7 TAB ================= -->
+      <section class="tab-content" id="tabTv">
+        <!-- Country Chips Bar -->
+        <div class="tv-filter-bar">
+          <div class="country-chips-scroll" id="countryChipsScroll">
+            <button type="button" class="country-pill active" data-country="">
+              <span class="pill-flag">🌍</span>
+              <span class="pill-name">Toutes les chaînes</span>
+            </button>
+            <!-- Country chips injected here -->
+          </div>
+        </div>
+
+        <!-- TV Sub-Filters & Quick Search -->
+        <div class="tv-sub-bar">
+          <div class="tv-search-wrap">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="tvSearchInput" placeholder="Filtrer les chaînes instantanément (ex: TF1, Canal, RMC, beIN, ESPN, HBO...)" autocomplete="off">
+            <button type="button" id="clearTvSearchBtn" style="display: none;"><i class="ph ph-x"></i></button>
+          </div>
+
+          <div class="server-filter-pills" id="serverFilterPills">
+            <button type="button" class="server-pill active" data-server="">Tous les serveurs</button>
+            <button type="button" class="server-pill" data-server="dlive">DLive (900+)</button>
+            <button type="button" class="server-pill" data-server="dlhd">DLHD / Phoenix</button>
+            <button type="button" class="server-pill" data-server="titan">Titan / CDNLive</button>
+            <button type="button" class="server-pill" data-server="falcon">Falcon</button>
+          </div>
+        </div>
+
+        <!-- Channels Grid -->
+        <div class="section-title-row">
+          <h2 class="section-heading" id="channelsHeading">Chaînes TV en Direct 24/7</h2>
+          <span class="section-count" id="channelsCountText">Chargement...</span>
+        </div>
+
+        <div class="channels-grid" id="channelsGrid">
+          <div class="loading-state-box">
+            <div class="spinner-ring"></div>
+            <span>Chargement des chaînes...</span>
+          </div>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="pagination-row" id="paginationRow" style="display: none;">
+          <button type="button" class="btn-secondary" id="loadMoreChannelsBtn">
+            <i class="ph-bold ph-arrow-down"></i>
+            <span>Charger plus de chaînes</span>
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ================= 3. FAVORITES TAB ================= -->
+      <section class="tab-content" id="tabFavorites">
+        <div class="section-title-row">
+          <h2 class="section-heading">Mes Chaînes & Matchs Favoris</h2>
+          <span class="section-count" id="favCountText">0 favori</span>
+        </div>
+
+        <div class="favorites-grid" id="favoritesGrid">
+          <div class="empty-state-box">
+            <i class="ph-bold ph-star empty-icon"></i>
+            <h3>Aucun favori pour le moment</h3>
+            <p>Cliquez sur l'étoile ou le cœur d'une chaîne ou d'un match pour l'épingler ici et y accéder en 1 clic !</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i class="ph-bold ph-check-circle toast-icon" id="toastIcon"></i>
+    <span id="toastMsg">Action effectuée</span>
+  </div>
+
+  <!-- App Controller -->
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

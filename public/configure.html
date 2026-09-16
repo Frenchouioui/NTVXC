@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NTVio • Addon Stremio Live TV & Sports</title>
+  <meta name="description" content="Addon Stremio pour regarder plus de 10 000 chaînes de télévision en direct et tous les événements sportifs mondiaux en HD via NTV.cx.">
+  <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="glow-bg glow-1"></div>
+  <div class="glow-bg glow-2"></div>
+
+  <main class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand-row">
+        <div class="logo-wrap">
+          <img src="/logo.svg" alt="NTVio Logo" class="brand-logo" width="56" height="56">
+          <div class="live-indicator-pulse"></div>
+        </div>
+        <div class="brand-meta">
+          <div class="title-row">
+            <h1 class="brand-title">NTV<span>io</span></h1>
+            <span class="version-pill">v1.0.0</span>
+          </div>
+          <p class="brand-subtitle">Addon Stremio Ultime pour <strong>Live TV & Sports Mondiaux</strong></p>
+        </div>
+      </div>
+
+      <!-- Live Stats Bar -->
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+          <i class="ph-bold ph-television"></i>
+          <div>
+            <span class="stat-value" id="statChannels">10 360+</span>
+            <span class="stat-label">Chaînes 24/7</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <i class="ph-bold ph-broadcast"></i>
+          <div>
+            <span class="stat-value" id="statMatches">--</span>
+            <span class="stat-label">Événements Live</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <i class="ph-bold ph-hard-drives"></i>
+          <div>
+            <span class="stat-value" id="statServers">6</span>
+            <span class="stat-label">Clusters Serveurs</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <i class="ph-bold ph-lightning"></i>
+          <div>
+            <span class="stat-value">HLS Direct</span>
+            <span class="stat-label">Zéro Lag M3U8</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Configuration Card -->
+    <section class="card config-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <i class="ph-bold ph-sliders"></i>
+          <h2>Personnalisation de votre Addon Stremio</h2>
+        </div>
+        <p class="card-desc">Sélectionnez vos pays et options préférés. Le lien d'installation s'adapte en temps réel.</p>
+      </div>
+
+      <!-- Option: Content Types -->
+      <div class="config-section">
+        <label class="section-label">1. Types de Contenus</label>
+        <div class="toggle-grid">
+          <label class="toggle-card active" id="toggleSportsCard">
+            <input type="checkbox" id="toggleSports" checked>
+            <div class="toggle-icon sports-icon"><i class="ph-bold ph-soccer-ball"></i></div>
+            <div class="toggle-info">
+              <span class="toggle-title">Matchs & Événements en Direct</span>
+              <span class="toggle-sub">Football, F1, MotoGP, NBA, Tennis, UFC, Rugby</span>
+            </div>
+            <div class="check-mark"><i class="ph-bold ph-check"></i></div>
+          </label>
+
+          <label class="toggle-card active" id="toggleTvCard">
+            <input type="checkbox" id="toggleTv" checked>
+            <div class="toggle-icon tv-icon"><i class="ph-bold ph-television-simple"></i></div>
+            <div class="toggle-info">
+              <span class="toggle-title">Chaînes TV 24/7 Continues</span>
+              <span class="toggle-sub">+10 300 flux classés par pays et thématique</span>
+            </div>
+            <div class="check-mark"><i class="ph-bold ph-check"></i></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Option: Countries -->
+      <div class="config-section" id="countriesSection">
+        <div class="section-header-row">
+          <label class="section-label">2. Pays & Bouquets Favoris</label>
+          <div class="btn-group-mini">
+            <button type="button" class="btn-mini" id="selectAllCountriesBtn">Tout cocher</button>
+            <button type="button" class="btn-mini" id="deselectAllCountriesBtn">Tout décocher</button>
+          </div>
+        </div>
+        <div class="countries-grid" id="countriesGrid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Option: Servers -->
+      <div class="config-section">
+        <label class="section-label">3. Serveurs Source NTV</label>
+        <div class="servers-grid" id="serversGrid">
+          <button type="button" class="server-chip active" data-server="titan">
+            <span class="server-badge badge-titan">TITAN</span>
+            <span class="server-text">CDNLive (Flux Rapides)</span>
+          </button>
+          <button type="button" class="server-chip active" data-server="phoenix">
+            <span class="server-badge badge-phoenix">PHOENIX</span>
+            <span class="server-text">DLHD / DaddyLive</span>
+          </button>
+          <button type="button" class="server-chip active" data-server="dlive">
+            <span class="server-badge badge-dlive">DLIVE</span>
+            <span class="server-text">DLive.sx (24/7 & Events)</span>
+          </button>
+          <button type="button" class="server-chip active" data-server="falcon">
+            <span class="server-badge badge-falcon">FALCON</span>
+            <span class="server-text">Sports & E-Sports</span>
+          </button>
+          <button type="button" class="server-chip active" data-server="kobra">
+            <span class="server-badge badge-kobra">KOBRA</span>
+            <span class="server-text">PPV & Events</span>
+          </button>
+          <button type="button" class="server-chip active" data-server="raptor">
+            <span class="server-badge badge-raptor">RAPTOR</span>
+            <span class="server-text">Motorsports & WWE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Search Test Box -->
+      <div class="config-section search-test-section">
+        <label class="section-label">4. Tester la Recherche de Chaînes</label>
+        <div class="search-input-wrap">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" id="channelSearchInput" placeholder="Tapez un nom de chaîne (ex: Canal+, beIN, RMC, TF1, Sky...)" autocomplete="off">
+          <button type="button" id="clearSearchBtn" class="clear-btn" style="display: none;"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="search-results-list" id="searchResultsList" style="display: none;"></div>
+      </div>
+
+      <!-- Installation CTA Area -->
+      <div class="install-action-area">
+        <div class="manifest-url-box">
+          <span class="manifest-label">URL de votre Manifest Stremio :</span>
+          <div class="manifest-input-row">
+            <input type="text" id="manifestUrlInput" readonly value="">
+            <button type="button" class="btn-secondary" id="copyManifestBtn" title="Copier le lien">
+              <i class="ph-bold ph-copy"></i>
+              <span id="copyBtnText">Copier</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="action-buttons-row">
+          <a href="#" id="installStremioBtn" class="btn-primary btn-install-large">
+            <i class="ph-bold ph-download-simple"></i>
+            <span>Installer sur Stremio Desktop</span>
+          </a>
+          <a href="/" class="btn-secondary btn-web-stremio">
+            <i class="ph-bold ph-play"></i>
+            <span>Ouvrir l'App Dédiée Web</span>
+          </a>
+        </div>
+        <p class="install-hint"><i class="ph ph-info"></i> Compatible avec Windows, macOS, Android TV, Google TV, Linux, iOS et Steam Deck.</p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>NTVio • Addon Stremio propulsé par l'écosystème open-source NTV.cx & DLive.sx.</p>
+    </footer>
+  </main>
+
+  <!-- Notification Toast -->
+  <div class="toast" id="toast">
+    <i class="ph-bold ph-check-circle"></i>
+    <span id="toastMessage">Lien copié dans le presse-papier !</span>
+  </div>
+
+  <script src="/configure.js"></script>
+</body>
+</html>
