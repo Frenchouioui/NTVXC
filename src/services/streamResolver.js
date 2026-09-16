@@ -87,7 +87,31 @@ export async function resolveDlhd(channelId, baseUrl, labelPrefix = 'DLHD') {
  */
 export async function resolveCdnLive(channelRawId, baseUrl) {
   const streams = [];
-  const playerUrl = `https://cdnlivetv.tv/api/v1/channels/player/?name=${encodeURIComponent(channelRawId)}&code=us&user=ntvstream&plan=free`;
+  let name = channelRawId;
+  let code = 'us';
+
+  try {
+    const { getChannelById } = await import('./ntvApi.js');
+    const fullId = channelRawId.startsWith('ntv-') ? channelRawId : `ntv-cdnlive-${channelRawId}`;
+    const ch = await getChannelById(fullId);
+
+    if (ch) {
+      if (ch.url && ch.url.includes('cdnlivetv.tv')) {
+        try {
+          const parsedUrl = new URL(ch.url);
+          name = parsedUrl.searchParams.get('name') || ch.name || name;
+          code = parsedUrl.searchParams.get('code') || ch.country || code;
+        } catch {}
+      } else {
+        if (ch.name) name = ch.name;
+        if (ch.country) code = ch.country.toLowerCase();
+      }
+    }
+  } catch (e) {
+    console.warn('[streamResolver] Failed to resolve channel details for cdnLive:', e.message);
+  }
+
+  const playerUrl = `https://cdnlivetv.tv/api/v1/channels/player/?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code.toLowerCase())}&user=ntvstream&plan=free`;
 
   try {
     const res = await fetch(playerUrl, {
@@ -267,8 +291,12 @@ export async function resolveMatchStream(matchId, baseUrl) {
       }
     }
 
-    // 2. DLHD / DLive source
-    const chId = src.channelId || (sourceUrl.match(/stream-(\d+)\.php/) || sourceUrl.match(/watch\.php\?id=(\d+)/) || [])[1];
+    // 2. DLHD / DLive / Golf numeric stream channel resolution
+    const chId = src.channelId || 
+                 (src.id && /^\d+$/.test(String(src.id)) ? String(src.id) : null) || 
+                 (src.source && (src.source === 'golf' || src.source === 'dlive' || src.source === 'dlhd') && src.id ? String(src.id) : null) ||
+                 (sourceUrl.match(/stream-(\d+)\.php/) || sourceUrl.match(/watch\.php\?id=(\d+)/) || [])[1];
+
     if (chId && chId !== '00') {
       const directM3u8 = `https://premium.hls.st/playlist/premium${chId}.m3u8`;
       streams.push({
@@ -297,7 +325,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
       continue;
     }
 
-    // 3. Kobra & Raptor embed providers (e.g. admin, echo, golf, delta, embedindia)
+    // 3. Kobra & Raptor embed providers (e.g. admin, echo, delta, embedindia)
     if (src.source && src.id) {
       const embedUrl = `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/1`;
       const serverLower = (src.server || match.server || 'kobra').toLowerCase();

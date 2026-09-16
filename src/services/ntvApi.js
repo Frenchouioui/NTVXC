@@ -367,9 +367,13 @@ async function refreshMatches() {
   }
 
   const sorted = Array.from(uniqueMap.values()).sort((a, b) => {
-    // Live first, then chronological
+    // Live first, then chronological by start date
     if (a.live && !b.live) return -1;
     if (!a.live && b.live) return 1;
+
+    if (a.date && b.date && a.date !== b.date) {
+      return a.date - b.date;
+    }
     return (b.sources ? b.sources.length : 0) - (a.sources ? a.sources.length : 0);
   });
 
@@ -475,11 +479,28 @@ function normalizeMatch(m, server) {
     server: s.server || server
   }));
 
+  const formatBadge = (badge) => {
+    if (!badge || typeof badge !== 'string') return '';
+    const b = badge.trim();
+    if (!b) return '';
+    if (b.startsWith('http')) return b;
+    if (b.startsWith('/')) return `${CONFIG.NTV_BASE_URL}${b}`;
+    return `${CONFIG.NTV_BASE_URL}/api/images/proxy/${b}`;
+  };
+
   let teams = parsed.teams;
   if (m.teams && m.teams.home && m.teams.away) {
     teams = {
-      home: { ...m.teams.home, name: decodeHtmlEntities(m.teams.home.name || '') },
-      away: { ...m.teams.away, name: decodeHtmlEntities(m.teams.away.name || '') }
+      home: { 
+        ...m.teams.home, 
+        name: decodeHtmlEntities(m.teams.home.name || ''),
+        badge: formatBadge(m.teams.home.badge)
+      },
+      away: { 
+        ...m.teams.away, 
+        name: decodeHtmlEntities(m.teams.away.name || ''),
+        badge: formatBadge(m.teams.away.badge)
+      }
     };
   }
 
