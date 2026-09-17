@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NTVio Admin • Gestion des Miroirs & Diagnostics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(18, 22, 34, 0.7);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+    }
+
+    .admin-nav {
+      height: 70px;
+      border-bottom: 1px solid var(--border-card);
+      background: rgba(7, 9, 14, 0.85);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: #4f46e5;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border-card);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    .admin-container {
+      max-width: 1300px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 1.25rem;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .stat-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .service-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+      margin-bottom: 1.5rem;
+    }
+
+    .service-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 1rem;
+    }
+
+    .service-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mirrors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .mirror-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-card);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+
+    .mirror-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .active-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .latency-pill {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+    .latency-pill.fast { color: var(--success); }
+    .latency-pill.slow { color: var(--warning); }
+    .latency-pill.down { color: var(--danger); }
+
+    .mirror-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .add-mirror-form {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .input-field {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-card);
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.875rem;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .tester-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+    }
+
+    .tester-form {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .test-result-box {
+      background: #040508;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 1.25rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #34d399;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .test-player-wrap {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 420px;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    .test-player-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <header class="admin-nav">
+    <a href="/" class="brand">
+      <i class="ph-bold ph-television"></i>
+      <span>NTVio</span>
+      <span class="brand-badge">Admin & Miroirs</span>
+    </a>
+    <div class="nav-actions">
+      <button type="button" class="btn btn-secondary" id="refreshHealthBtn">
+        <i class="ph-bold ph-arrows-clockwise"></i> Tester Tous les Miroirs
+      </button>
+      <button type="button" class="btn btn-danger" id="purgeCacheBtn">
+        <i class="ph-bold ph-trash"></i> Vider les Caches
+      </button>
+      <a href="/" class="btn btn-primary">
+        <i class="ph-bold ph-arrow-square-out"></i> Voir le Site
+      </a>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <!-- Stat Metrics -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Statut Système</span>
+        <span class="stat-val" style="color: #10b981;">🟢 En Ligne</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Matchs & Diffusions Direct</span>
+        <span class="stat-val" id="statMatches">-</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Mémoire Serveur (RAM)</span>
+        <span class="stat-val" id="statMemory">- MB</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Uptime Serveur</span>
+        <span class="stat-val" id="statUptime">-</span>
+      </div>
+    </div>
+
+    <!-- Mirrors Management Section -->
+    <section>
+      <h2 class="section-title"><i class="ph-bold ph-hard-drives"></i> Domaines & Miroirs Scrapers (Auto-Fallback)</h2>
+      <div id="mirrorsContainer">
+        <div style="padding: 2rem; text-align: center; color: var(--text-muted);">Chargement de la configuration des miroirs...</div>
+      </div>
+    </section>
+
+    <!-- Stream Resolver Live Diagnostic Tester -->
+    <section>
+      <h2 class="section-title"><i class="ph-bold ph-lightning"></i> Testeur de Résolution de Flux en Direct</h2>
+      <div class="tester-card">
+        <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+          Testez l'extraction en temps réel d'un flux M3U8 déchiffré pour vérifier que le miroir actif résout parfaitement les diffuseurs.
+        </p>
+        <form class="tester-form" id="streamTesterForm">
+          <input type="text" class="input-field" id="testStreamId" placeholder="ID de la chaîne ou match (ex: ntv-dlive-31 pour Canal+, ntv-dlive-51 pour Sky Sports...)" value="ntv-dlive-31" required>
+          <button type="submit" class="btn btn-primary" id="runTestBtn">
+            <i class="ph-bold ph-play"></i> Lancer le Test d'Extraction
+          </button>
+        </form>
+
+        <div class="test-result-box" id="testLogBox"></div>
+        <div class="test-player-wrap" id="testPlayerWrap">
+          <video id="testVideo" controls autoplay playsinline muted></video>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let hlsInstance = null;
+
+    async function loadAdminStatus() {
+      try {
+        const res = await fetch('/api/admin/status');
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('statMatches').textContent = `${data.stats.matchesLive} live / ${data.stats.matchesTotal}`;
+        document.getElementById('statMemory').textContent = `${data.stats.memoryUsageMb} MB`;
+        
+        const uptimeMins = Math.floor(data.stats.serverUptimeSec / 60);
+        document.getElementById('statUptime').textContent = `${uptimeMins} min`;
+
+        renderMirrors(data.mirrors);
+      } catch (err) {
+        console.error('Error loading admin status:', err);
+      }
+    }
+
+    function renderMirrors(mirrors) {
+      const container = document.getElementById('mirrorsContainer');
+      container.innerHTML = '';
+
+      for (const [key, group] of Object.entries(mirrors)) {
+        const card = document.createElement('div');
+        card.className = 'service-card';
+
+        const rowsHtml = group.mirrors.map(m => {
+          const isActive = m === group.active;
+          return `
+            <div class="mirror-row" data-service="${key}" data-url="${m}">
+              <div class="mirror-info">
+                <i class="ph-bold ph-link" style="color: ${isActive ? '#10b981' : '#9ca3af'};"></i>
+                <span style="font-weight: 600; font-size: 0.95rem;">${m}</span>
+                ${isActive ? '<span class="active-badge">⭐ ACTIF</span>' : ''}
+                <span class="latency-pill" id="lat-${btoa(m).replace(/=/g,'')}">...</span>
+              </div>
+              <div class="mirror-actions">
+                ${!isActive ? `<button type="button" class="btn btn-secondary btn-set-active" data-service="${key}" data-url="${m}"><i class="ph-bold ph-check"></i> Activer</button>` : ''}
+                <button type="button" class="btn btn-danger btn-remove-mirror" data-service="${key}" data-url="${m}"><i class="ph-bold ph-trash"></i></button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        card.innerHTML = `
+          <div class="service-header">
+            <div class="service-name">
+              <span>${group.name}</span>
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Fallback automatique actif</span>
+          </div>
+          <div class="mirrors-list">
+            ${rowsHtml}
+          </div>
+          <form class="add-mirror-form" data-service="${key}">
+            <input type="url" class="input-field" placeholder="Ajouter une nouvelle URL miroir (ex: https://...)" required>
+            <button type="submit" class="btn btn-secondary"><i class="ph-bold ph-plus"></i> Ajouter Miroir</button>
+          </form>
+        `;
+
+        container.appendChild(card);
+      }
+
+      attachMirrorEvents();
+    }
+
+    function attachMirrorEvents() {
+      // Set active
+      document.querySelectorAll('.btn-set-active').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const service = btn.getAttribute('data-service');
+          const url = btn.getAttribute('data-url');
+          btn.disabled = true;
+          await fetch('/api/admin/mirrors/active', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service, url })
+          });
+          loadAdminStatus();
+        });
+      });
+
+      // Remove mirror
+      document.querySelectorAll('.btn-remove-mirror').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const service = btn.getAttribute('data-service');
+          const url = btn.getAttribute('data-url');
+          if (!confirm(`Supprimer le miroir ${url} ?`)) return;
+          await fetch('/api/admin/mirrors/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service, url })
+          });
+          loadAdminStatus();
+        });
+      });
+
+      // Add mirror
+      document.querySelectorAll('.add-mirror-form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const service = form.getAttribute('data-service');
+          const input = form.querySelector('input');
+          const url = input.value.trim();
+          if (!url) return;
+          await fetch('/api/admin/mirrors/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service, url })
+          });
+          input.value = '';
+          loadAdminStatus();
+        });
+      });
+    }
+
+    async function checkHealthAll() {
+      const btn = document.getElementById('refreshHealthBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i> Test en cours...';
+
+      try {
+        const res = await fetch('/api/admin/health');
+        const data = await res.json();
+        if (data.success) {
+          for (const [srvKey, srv] of Object.entries(data.health)) {
+            for (const m of srv.mirrors) {
+              const pillId = `lat-${btoa(m.url).replace(/=/g,'')}`;
+              const el = document.getElementById(pillId);
+              if (el) {
+                el.textContent = m.ok ? `${m.latencyMs}ms (OK)` : `${m.error || 'Erreur'}`;
+                el.className = `latency-pill ${m.ok ? (m.latencyMs < 300 ? 'fast' : 'slow') : 'down'}`;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Health check error:', err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i> Tester Tous les Miroirs';
+      }
+    }
+
+    document.getElementById('refreshHealthBtn').addEventListener('click', checkHealthAll);
+
+    // Purge Cache
+    document.getElementById('purgeCacheBtn').addEventListener('click', async () => {
+      if (!confirm('Voulez-vous purger tous les caches mémoire (chaînes, matchs, flux) ?')) return;
+      const res = await fetch('/api/admin/clear-cache', { method: 'POST' });
+      const d = await res.json();
+      alert(d.message || 'Cache vidé avec succès !');
+      loadAdminStatus();
+    });
+
+    // Stream resolution tester
+    document.getElementById('streamTesterForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('testStreamId').value.trim();
+      const runBtn = document.getElementById('runTestBtn');
+      const logBox = document.getElementById('testLogBox');
+      const playerWrap = document.getElementById('testPlayerWrap');
+      const videoEl = document.getElementById('testVideo');
+
+      runBtn.disabled = true;
+      runBtn.textContent = 'Résolution en cours...';
+      logBox.style.display = 'block';
+      logBox.textContent = `[DIAGNOSTIC] Démarrage de l'extraction pour l'ID : ${id}\nRequête envoyée au serveur...`;
+
+      try {
+        const res = await fetch('/api/admin/test-stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          logBox.textContent = `[SUCCÈS] ${data.streamsCount} flux résolus en ${data.durationMs}ms !\n` +
+                               JSON.stringify(data.streams, null, 2);
+
+          const playableHls = data.streams.find(s => s.url && s.url.includes('.m3u8'));
+          if (playableHls) {
+            playerWrap.style.display = 'block';
+            if (hlsInstance) hlsInstance.destroy();
+
+            if (Hls.isSupported()) {
+              hlsInstance = new Hls({ enableWorker: true });
+              hlsInstance.loadSource(playableHls.url);
+              hlsInstance.attachMedia(videoEl);
+              hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => videoEl.play());
+            } else {
+              videoEl.src = playableHls.url;
+              videoEl.play();
+            }
+          }
+        } else {
+          logBox.textContent = `[ERREUR] Impossible de résoudre le flux :\n${data.error}`;
+        }
+      } catch (err) {
+        logBox.textContent = `[ERREUR RÉSEAU] ${err.message}`;
+      } finally {
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i class="ph-bold ph-play"></i> Lancer le Test d\'Extraction';
+      }
+    });
+
+    // Initial load
+    loadAdminStatus().then(() => checkHealthAll());
+  </script>
+</body>
+</html>

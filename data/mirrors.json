@@ -1,0 +1,28 @@
+{
+  "dlive": {
+    "name": "DLive / DaddyLive / DLHD",
+    "active": "https://dlive.sx",
+    "mirrors": [
+      "https://dlive.sx",
+      "https://dlhd.so",
+      "https://daddylive.mp",
+      "https://dlhd.sx"
+    ]
+  },
+  "ntv": {
+    "name": "NTV.cx Sports & Channels",
+    "active": "https://ntv.cx",
+    "mirrors": [
+      "https://ntv.cx",
+      "https://ntvstream.com"
+    ]
+  },
+  "cdnlive": {
+    "name": "CDNLive Stream Networks",
+    "active": "https://cdnlive.tv",
+    "mirrors": [
+      "https://cdnlive.tv",
+      "https://cdnlive.sx"
+    ]
+  }
+}

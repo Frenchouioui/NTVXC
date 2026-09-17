@@ -222,6 +222,7 @@ export class UniversalPlayer {
       if (this.fullscreenBtn) {
         this.fullscreenBtn.title = isFs ? 'Quitter le plein écran (F)' : 'Plein écran (F)';
       }
+      document.body.classList.toggle('in-fullscreen', isFs);
       const videoContainer = this.container.querySelector('.video-container');
       if (videoContainer) {
         videoContainer.classList.toggle('is-fullscreen', isFs);
@@ -292,32 +293,6 @@ export class UniversalPlayer {
       if (this.currentStream) this.playStream(this.currentStream);
     });
 
-    this.nextSourceBtn.addEventListener('click', () => {
-      this.switchToNextSource();
-    });
-
-    // Keyboard Shortcuts (when not typing in an input)
-    document.addEventListener('keydown', (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-
-      if (e.code === 'Space') {
-        e.preventDefault();
-        this.togglePlay();
-      } else if (e.code === 'KeyM') {
-        e.preventDefault();
-        this.toggleMute();
-      } else if (e.code === 'KeyF') {
-        e.preventDefault();
-        this.toggleFullscreen();
-      } else if (e.code === 'ArrowUp') {
-        e.preventDefault();
-        this.setVolume(Math.min(1, this.volume + 0.1));
-      } else if (e.code === 'ArrowDown') {
-        e.preventDefault();
-        this.setVolume(Math.max(0, this.volume - 0.1));
-      }
-    });
-
     // Player Favorite Button Toggle
     if (this.playerFavBtn) {
       this.playerFavBtn.addEventListener('click', () => {
@@ -332,10 +307,10 @@ export class UniversalPlayer {
       this.theaterBtn.addEventListener('click', () => this.toggleTheater());
     }
 
-    // YouTube-like Global Keyboard Shortcuts (F, T, M, Space/K, P)
-    window.addEventListener('keydown', (e) => {
-      const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
-      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+    // YouTube-like Global Keyboard Shortcuts (F, T, M, Space/K, P, Arrows)
+    document.addEventListener('keydown', (e) => {
+      const tag = document.activeElement?.tagName?.toLowerCase() || '';
+      if (['input', 'textarea'].includes(tag) || document.activeElement?.isContentEditable) return;
       if (!this.container || this.container.style.display === 'none') return;
 
       const key = e.key.toLowerCase();
@@ -354,6 +329,12 @@ export class UniversalPlayer {
       } else if (key === 'p') {
         e.preventDefault();
         if (this.pipBtn) this.pipBtn.click();
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        this.setVolume(Math.min(1, this.volume + 0.1));
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        this.setVolume(Math.max(0, this.volume - 0.1));
       }
     });
   }
@@ -925,28 +906,33 @@ export class UniversalPlayer {
     }
   }
 
-  toggleFullscreen() {
-    const videoContainer = this.container.querySelector('.video-container') || document.querySelector('.video-container');
-    if (!videoContainer) return;
-
+  async toggleFullscreen() {
     const isFullscreen = !!(document.fullscreenElement || 
                            document.webkitFullscreenElement || 
                            document.mozFullScreenElement || 
                            document.msFullscreenElement);
 
     if (!isFullscreen) {
-      if (videoContainer.requestFullscreen) {
-        videoContainer.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
-          videoContainer.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
-        });
-      } else if (videoContainer.webkitRequestFullscreen) {
-        videoContainer.webkitRequestFullscreen();
-      } else if (videoContainer.mozRequestFullScreen) {
-        videoContainer.mozRequestFullScreen();
-      } else if (videoContainer.msRequestFullscreen) {
-        videoContainer.msRequestFullscreen();
-      } else if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
-        this.videoEl.webkitEnterFullscreen();
+      // Prioritize document.documentElement for genuine OS window fullscreen (hides Chrome tabs, URL bar & Windows taskbar)
+      const docEl = document.documentElement;
+      try {
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen({ navigationUI: 'hide' });
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          docEl.mozRequestFullScreen();
+        } else if (docEl.msRequestFullscreen) {
+          docEl.msRequestFullscreen();
+        }
+      } catch (err) {
+        // Fallback to videoContainer
+        const videoContainer = this.container.querySelector('.video-container');
+        if (videoContainer && videoContainer.requestFullscreen) {
+          videoContainer.requestFullscreen().catch(e => console.warn(e));
+        } else if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
+          this.videoEl.webkitEnterFullscreen();
+        }
       }
     } else {
       if (document.exitFullscreen) {

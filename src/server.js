@@ -5,12 +5,16 @@ import { fileURLToPath } from 'url';
 import { CONFIG } from './config.js';
 import stremioRouter from './routes/stremio.js';
 import apiRouter from './routes/api.js';
+import adminRouter from './routes/admin.js';
 import { handleHlsProxy, handleTsProxy } from './services/hlsProxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// Parse JSON bodies
+app.use(express.json());
 
 // Trust proxy headers (crucial for Docker, Tailscale, Caddy, Nginx and HTTPS)
 app.set('trust proxy', true);
@@ -19,7 +23,7 @@ app.set('trust proxy', true);
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS, POST');
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -35,13 +39,20 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.get('/proxy/hls', handleHlsProxy);
 app.get('/proxy/ts', handleTsProxy);
 
+// Admin Management API
+app.use('/api/admin', adminRouter);
+
 // Web API Helper routes
 app.use('/api', apiRouter);
 
 // Stremio Addon Protocol Routes
 app.use('/', stremioRouter);
 
-// App and Configure UI routes
+// App, Configure and Admin UI routes
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 app.get('/configure', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/configure.html'));
 });

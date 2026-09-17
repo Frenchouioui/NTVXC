@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { detectCountryFromName, getDliveChannels, getDliveSchedule, decodeHtmlEntities } from './dliveApi.js';
+import { getActiveMirror } from './mirrorManager.js';
 
 let channelsCache = {
   data: [],
@@ -12,6 +13,12 @@ let matchesCache = {
   all: [],
   lastFetched: 0
 };
+
+export function clearCache() {
+  channelsCache = { data: [], lastFetched: 0, total: 0 };
+  matchesCache = { byServer: {}, all: [], lastFetched: 0 };
+  console.log('[ntvApi] All in-memory caches cleared.');
+}
 
 /**
  * Fetch a page of channels directly from ntv.cx
@@ -26,12 +33,13 @@ export async function fetchChannelsFromNtv(offset = 0, limit = 100, query = '') 
     params.set('q', query.trim());
   }
 
-  const url = `${CONFIG.NTV_BASE_URL}/api/get-channels?${params.toString()}`;
+  const ntvBase = getActiveMirror('ntv');
+  const url = `${ntvBase}/api/get-channels?${params.toString()}`;
 
   const res = await fetch(url, {
     headers: {
       'User-Agent': CONFIG.USER_AGENT,
-      'Referer': `${CONFIG.NTV_BASE_URL}/channels`,
+      'Referer': `${ntvBase}/channels`,
       'Accept': 'application/json'
     }
   });
@@ -296,13 +304,14 @@ async function refreshMatches() {
   const byServer = {};
 
   // 1. Fetch NTV matches across all servers
+  const ntvBase = getActiveMirror('ntv');
   for (const server of CONFIG.MATCH_SERVERS) {
     try {
-      const url = `${CONFIG.NTV_BASE_URL}/api/get-matches?server=${server}&type=both`;
+      const url = `${ntvBase}/api/get-matches?server=${server}&type=both`;
       const res = await fetch(url, {
         headers: {
           'User-Agent': CONFIG.USER_AGENT,
-          'Referer': `${CONFIG.NTV_BASE_URL}/matches/${server}`,
+          'Referer': `${ntvBase}/matches/${server}`,
           'Accept': 'application/json'
         }
       });

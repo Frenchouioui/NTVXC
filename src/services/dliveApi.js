@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { generateChannelPoster, generateMatchPoster } from './ntvApi.js';
+import { getActiveMirror } from './mirrorManager.js';
 
 let dliveChannelsCache = {
   data: [],
@@ -14,7 +15,7 @@ let dliveScheduleCache = {
 const DLIVE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Fetch and parse 24/7 channels from https://dlive.sx/24-7-channels.php
+ * Fetch and parse 24/7 channels from dlive
  */
 export async function getDliveChannels() {
   const now = Date.now();
@@ -22,11 +23,13 @@ export async function getDliveChannels() {
     return dliveChannelsCache.data;
   }
 
+  const dliveBase = getActiveMirror('dlive');
+
   try {
-    const res = await fetch('https://dlive.sx/24-7-channels.php', {
+    const res = await fetch(`${dliveBase}/24-7-channels.php`, {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
-        'Referer': 'https://dlive.sx/'
+        'Referer': `${dliveBase}/`
       }
     });
 
@@ -79,11 +82,13 @@ export async function getDliveSchedule() {
     return dliveScheduleCache.data;
   }
 
+  const dliveBase = getActiveMirror('dlive');
+
   try {
-    const res = await fetch('https://dlive.sx/', {
+    const res = await fetch(`${dliveBase}/`, {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
-        'Referer': 'https://dlive.sx/'
+        'Referer': `${dliveBase}/`
       }
     });
 
@@ -122,7 +127,7 @@ export async function getDliveSchedule() {
           channelId: cm[1],
           channelName: decodeHtmlEntities(cm[2].replace(/<[^>]+>/g, '').trim()),
           server: 'dlive',
-          url: `https://dlive.sx/stream/stream-${cm[1]}.php`
+          url: `${dliveBase}/stream/stream-${cm[1]}.php`
         });
       }
 

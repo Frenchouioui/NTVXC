@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { getActiveMirror } from './mirrorManager.js';
 
 /**
  * Main stream resolver entrypoint
@@ -49,22 +50,18 @@ function decodeEConfig(str) {
   const chunksCount = 4;
   const s1 = Buffer.from(str, 'base64').toString('binary');
   const len = s1.length;
-  const chunkSize = Math.ceil(len / chunksCount);
-  const chunks = [];
-  let offset = 0;
+  const chunkLen = Math.floor(len / chunksCount);
+  let res = '';
   for (let i = 0; i < chunksCount; i++) {
-    chunks.push(s1.substr(offset, chunkSize));
-    offset += chunkSize;
+    const o = order[i];
+    res += s1.substring(o * chunkLen, (o + 1) * chunkLen);
   }
-  const reordered = [];
-  for (let i = 0; i < order.length; i++) {
-    let chunk = String(chunks[i]);
-    chunk = chunk.slice(0, 3) + chunk.slice(4);
-    reordered[order[i]] = Buffer.from(chunk, 'base64').toString('binary');
+  const key = 0x5a;
+  let decoded = '';
+  for (let i = 0; i < res.length; i++) {
+    decoded += String.fromCharCode(res.charCodeAt(i) ^ key);
   }
-  const joined = reordered.join('');
-  const finalStr = Buffer.from(joined, 'base64').toString('utf-8');
-  return JSON.parse(finalStr);
+  return JSON.parse(decoded);
 }
 
 /**
@@ -79,12 +76,14 @@ export async function fetchDliveRealStream(channelId) {
     return cached.data;
   }
 
+  const dliveBase = getActiveMirror('dlive');
+
   try {
-    const streamPhpUrl = `https://dlive.sx/stream/stream-${cleanId}.php`;
+    const streamPhpUrl = `${dliveBase}/stream/stream-${cleanId}.php`;
     const res1 = await fetch(streamPhpUrl, {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
-        'Referer': `https://dlive.sx/watch.php?id=${cleanId}`
+        'Referer': `${dliveBase}/watch.php?id=${cleanId}`
       }
     });
     if (!res1.ok) return null;

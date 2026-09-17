@@ -1,4 +1,4 @@
-import { UniversalPlayer } from './player.js?v=3.0';
+import { UniversalPlayer } from './player.js?v=3.1';
 
 document.addEventListener('DOMContentLoaded', () => {
   // App State
