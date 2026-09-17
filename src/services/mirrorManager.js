@@ -241,3 +241,69 @@ export async function fetchWithFallback(service, pathAndQuery, fetchOptions = {}
 
   throw lastError || new Error(`All mirrors failed for ${service}`);
 }
+
+/**
+ * Auto-discover and sync mirrors from official backup hubs
+ * - DaddyLive official directory: https://daddylive.pk/
+ * - NTV official directory: https://ntvx.link/
+ */
+export async function syncFromOfficialHubs() {
+  const report = {
+    timestamp: new Date().toISOString(),
+    hubsScanned: ['https://daddylive.pk/', 'https://ntvx.link/'],
+    newMirrorsAdded: { dlive: [], ntv: [] },
+    testedMirrors: []
+  };
+
+  // 1. Scan DaddyLive directory
+  try {
+    const res = await fetch('https://daddylive.pk/', {
+      headers: { 'User-Agent': CONFIG.USER_AGENT },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const domainMatches = [...html.matchAll(/https?:\/\/(?:www\.)?(dlhd\.[a-z0-9]+|dlstreams\.[a-z0-9]+|daddylive\.[a-z0-9]+|dlive\.[a-z0-9]+)/gi)];
+      const foundDomains = Array.from(new Set(domainMatches.map(m => `https://${m[1].toLowerCase()}`)));
+
+      foundDomains.forEach(dom => {
+        if (!mirrorsState.dlive.mirrors.includes(dom)) {
+          mirrorsState.dlive.mirrors.push(dom);
+          report.newMirrorsAdded.dlive.push(dom);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[mirrorManager] Error scanning daddylive.pk:', e.message);
+  }
+
+  // 2. Scan NTV directory
+  try {
+    const res = await fetch('https://ntvx.link/', {
+      headers: { 'User-Agent': CONFIG.USER_AGENT },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const domainMatches = [...html.matchAll(/https?:\/\/(?:www\.)?(ntv\.[a-z0-9]+|ntvs\.[a-z0-9]+|ntvstream\.[a-z0-9]+|ntvxc\.[a-z0-9]+)/gi)];
+      const foundDomains = Array.from(new Set(domainMatches.map(m => `https://${m[1].toLowerCase()}`)));
+
+      foundDomains.forEach(dom => {
+        if (!mirrorsState.ntv.mirrors.includes(dom)) {
+          mirrorsState.ntv.mirrors.push(dom);
+          report.newMirrorsAdded.ntv.push(dom);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[mirrorManager] Error scanning ntvx.link:', e.message);
+  }
+
+  // 3. Save discovered mirrors & run health checks
+  saveMirrors();
+  const healthResults = await checkAllHealth();
+  report.testedMirrors = healthResults;
+
+  return report;
+}
+

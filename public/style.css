@@ -2700,3 +2700,384 @@ body.in-fullscreen .video-container .player-controls,
     max-width: 100%;
   }
 }
+
+/* ==========================================================================
+   Interactive Calendar & TV Schedule Styles
+   ========================================================================== */
+
+.calendar-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(16px);
+}
+
+.calendar-days-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.2rem 0;
+  scrollbar-width: none;
+}
+
+.calendar-days-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-day-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.calendar-day-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.calendar-day-pill.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.2));
+  border-color: rgba(129, 140, 248, 0.5);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+}
+
+.calendar-day-pill .day-date-str {
+  font-size: 0.725rem;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.calendar-day-pill .day-count-badge {
+  font-size: 0.675rem;
+  padding: 0.15rem 0.45rem;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 9999px;
+  font-weight: 700;
+}
+
+.calendar-day-pill.active .day-count-badge {
+  background: rgba(99, 102, 241, 0.6);
+  color: #fff;
+}
+
+.calendar-search-wrap {
+  position: relative;
+  min-width: 280px;
+  max-width: 360px;
+  flex-shrink: 0;
+}
+
+.calendar-search-wrap i {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-subtle);
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.calendar-search-wrap input {
+  width: 100%;
+  height: 38px;
+  padding: 0 2.2rem 0 2.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.calendar-search-wrap input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.calendar-sports-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.2rem 0 0.85rem 0;
+  scrollbar-width: none;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-sports-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-sport-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.calendar-sport-pill:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.calendar-sport-pill.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.calendar-sport-pill .sport-count {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.schedule-subhead-row {
+  margin-bottom: 1.25rem;
+}
+
+.schedule-timezone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-subtle);
+  font-size: 0.725rem;
+  font-weight: 500;
+}
+
+/* Schedule Timeline Grid */
+.schedule-timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.1rem;
+}
+
+.schedule-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 1.1rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.schedule-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.schedule-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+}
+
+.schedule-card:hover::before {
+  opacity: 1;
+}
+
+.schedule-card.is-live {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.04) 0%, var(--bg-card) 60%);
+}
+
+.schedule-card.is-live::before {
+  background: linear-gradient(90deg, transparent, #22c55e, transparent);
+  opacity: 1;
+}
+
+.schedule-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.schedule-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.schedule-card.is-live .schedule-time-badge {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.schedule-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: livePulse 1.5s infinite;
+}
+
+.schedule-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.schedule-category-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.08);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-tournament-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-card-body {
+  margin-bottom: 1rem;
+  flex: 1;
+}
+
+.schedule-event-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.schedule-card-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.schedule-channels-label {
+  font-size: 0.675rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.schedule-channels-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.schedule-ch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: 0.725rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.schedule-ch-pill i {
+  color: var(--accent-blue);
+  font-size: 0.75rem;
+}
+
+.schedule-ch-pill:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .calendar-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calendar-search-wrap {
+    min-width: 100%;
+  }
+  .schedule-timeline-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

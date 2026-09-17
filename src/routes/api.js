@@ -1,9 +1,26 @@
 import { Router } from 'express';
 import { CONFIG } from '../config.js';
-import { getChannels, getChannelById, getMatches, getMatchById, getMatchesStats } from '../services/ntvApi.js';
+import { getChannels, getChannelById, getMatches, getMatchById, getMatchesStats, getUnifiedCalendar } from '../services/ntvApi.js';
 import { resolveStream } from '../services/streamResolver.js';
 
 const router = Router();
+
+/**
+ * Unified Interactive Schedule / Calendar
+ */
+router.get('/schedule', async (req, res) => {
+  try {
+    const date = (req.query.date || 'today').trim();
+    const sport = (req.query.sport || '').trim();
+    const q = (req.query.q || '').trim();
+
+    const calendar = await getUnifiedCalendar({ date, sport, q });
+    res.json(calendar);
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 
 /**
  * Global stats

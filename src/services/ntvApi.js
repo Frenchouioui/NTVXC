@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { detectCountryFromName, getDliveChannels, getDliveSchedule, decodeHtmlEntities } from './dliveApi.js';
+import { detectCountryFromName, getDliveChannels, getDliveSchedule, getDliveFullSchedule, decodeHtmlEntities } from './dliveApi.js';
 import { getActiveMirror } from './mirrorManager.js';
 
 let channelsCache = {
@@ -683,3 +683,169 @@ function escapeXml(unsafe) {
     }
   });
 }
+
+/**
+ * Get unified calendar across NTV and DLive
+ */
+export async function getUnifiedCalendar({ date = 'today', sport = '', q = '' } = {}) {
+  // 1. Fetch DLive full multi-day schedule
+  const dliveDays = await getDliveFullSchedule();
+  // 2. Fetch all current matches
+  const allMatches = await getMatches();
+
+  const daysMap = new Map();
+
+  // Initialize Today
+  const todayKey = 'today';
+  daysMap.set(todayKey, {
+    id: 'today',
+    label: "Aujourd'hui",
+    dateStr: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date()),
+    isToday: true,
+    events: []
+  });
+
+  const todayBucket = daysMap.get(todayKey);
+  const seenEventKeys = new Set();
+
+  for (const m of allMatches) {
+    const key = (m.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+    seenEventKeys.add(key);
+    todayBucket.events.push({
+      id: m.id,
+      title: m.title,
+      category: m.category || 'Football',
+      tournament: m.tournament || '',
+      teams: m.teams || null,
+      time: m.time || 'En direct',
+      live: !!m.live,
+      poster: m.poster,
+      server: m.server,
+      servers: m.servers || [m.server],
+      sources: m.sources || []
+    });
+  }
+
+  // Integrate DLive days
+  dliveDays.forEach((day, idx) => {
+    const dayId = idx === 0 ? 'today' : `day-${idx}`;
+    if (!daysMap.has(dayId)) {
+      const label = idx === 1 ? 'Demain' : `Jour +${idx}`;
+      daysMap.set(dayId, {
+        id: dayId,
+        label,
+        dateStr: day.dayTitle.replace(/ - Schedule Time UK GMT/i, '').trim(),
+        isToday: false,
+        events: []
+      });
+    }
+
+    const targetBucket = daysMap.get(dayId);
+
+    day.categories.forEach(cat => {
+      cat.events.forEach(ev => {
+        const key = (ev.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+        if (dayId === 'today' && seenEventKeys.has(key)) {
+          const existing = targetBucket.events.find(x => (x.title || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35) === key);
+          if (existing && ev.sources) {
+            ev.sources.forEach(s => {
+              if (!existing.sources.some(xs => xs.channelId === s.channelId)) {
+                existing.sources.push(s);
+              }
+            });
+          }
+          return;
+        }
+
+        seenEventKeys.add(key);
+        targetBucket.events.push({
+          id: ev.id,
+          title: ev.title,
+          category: ev.category,
+          tournament: '',
+          teams: null,
+          time: ev.time || '12:00',
+          live: !!ev.live,
+          poster: ev.poster,
+          server: 'dlive',
+          servers: ['dlive'],
+          sources: ev.sources || []
+        });
+      });
+    });
+  });
+
+  // Extract available sports across all events of requested day
+  const activeDay = daysMap.get(date) || daysMap.get('today');
+  const sportCounts = new Map();
+  activeDay.events.forEach(e => {
+    let cat = (e.category || 'Général').trim();
+    if (cat.toLowerCase().includes('soccer') || cat.toLowerCase().includes('foot')) cat = 'Football';
+    else if (cat.toLowerCase().includes('basket')) cat = 'Basketball';
+    else if (cat.toLowerCase().includes('tennis')) cat = 'Tennis';
+    else if (cat.toLowerCase().includes('motor') || cat.toLowerCase().includes('f1')) cat = 'Motorsport';
+    else if (cat.toLowerCase().includes('rugby')) cat = 'Rugby';
+    else if (cat.toLowerCase().includes('show') || cat.toLowerCase().includes('tv')) cat = 'TV Shows';
+    sportCounts.set(cat, (sportCounts.get(cat) || 0) + 1);
+  });
+
+  const availableSports = [
+    { name: 'Tous', count: activeDay.events.length },
+    ...Array.from(sportCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+  ];
+
+  let filteredEvents = activeDay.events;
+
+  // Filter by sport if specified
+  if (sport && sport.toLowerCase() !== 'tous') {
+    const sLower = sport.toLowerCase();
+    filteredEvents = filteredEvents.filter(e => {
+      const c = (e.category || '').toLowerCase();
+      if (sLower === 'football') return c.includes('foot') || c.includes('soccer');
+      if (sLower === 'basketball') return c.includes('basket');
+      if (sLower === 'tennis') return c.includes('tennis');
+      if (sLower === 'motorsport') return c.includes('motor') || c.includes('f1');
+      if (sLower === 'rugby') return c.includes('rugby');
+      if (sLower === 'tv shows') return c.includes('show') || c.includes('tv');
+      return c.includes(sLower);
+    });
+  }
+
+  // Filter by search query if specified
+  if (q) {
+    const qLower = q.toLowerCase();
+    filteredEvents = filteredEvents.filter(e =>
+      (e.title || '').toLowerCase().includes(qLower) ||
+      (e.tournament || '').toLowerCase().includes(qLower) ||
+      (e.sources || []).some(s => (s.channelName || '').toLowerCase().includes(qLower))
+    );
+  }
+
+  // Sort: Live first, then by time
+  filteredEvents.sort((a, b) => {
+    if (a.live && !b.live) return -1;
+    if (!a.live && b.live) return 1;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+
+  const availableDays = Array.from(daysMap.values()).map(d => ({
+    id: d.id,
+    label: d.label,
+    dateStr: d.dateStr,
+    isToday: d.isToday,
+    count: d.events.length
+  }));
+
+  return {
+    success: true,
+    availableDays,
+    availableSports,
+    selectedDate: activeDay.id,
+    selectedSport: sport || 'Tous',
+    totalEvents: filteredEvents.length,
+    events: filteredEvents
+  };
+}
+

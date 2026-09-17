@@ -17,13 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
     channelsHasMore: false,
     favorites: JSON.parse(localStorage.getItem('ntvio_favorites') || '[]'),
     cachedMatches: [],
-    activeItemId: null
+    activeItemId: null,
+    scheduleDate: 'today',
+    scheduleSport: 'Tous',
+    scheduleQuery: '',
+    scheduleLoading: false
   };
 
   // DOM References
   const navTabs = document.getElementById('navTabs');
   const tabSports = document.getElementById('tabSports');
   const tabTv = document.getElementById('tabTv');
+  const tabSchedule = document.getElementById('tabSchedule');
   const tabFavorites = document.getElementById('tabFavorites');
   const sportsGrid = document.getElementById('sportsGrid');
   const channelsGrid = document.getElementById('channelsGrid');
@@ -44,12 +49,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const statsLiveText = document.getElementById('statsLiveText');
   const liveMatchBadge = document.getElementById('liveMatchBadge');
   const tvCountBadge = document.getElementById('tvCountBadge');
+  const scheduleCountBadge = document.getElementById('scheduleCountBadge');
   const favCountBadge = document.getElementById('favCountBadge');
   const favCountText = document.getElementById('favCountText');
   const matchesCountText = document.getElementById('matchesCountText');
   const channelsCountText = document.getElementById('channelsCountText');
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toastMsg');
+
+  // Schedule DOM References
+  const calendarDaysBar = document.getElementById('calendarDaysBar');
+  const calendarSportsBar = document.getElementById('calendarSportsBar');
+  const scheduleSearchInput = document.getElementById('scheduleSearchInput');
+  const scheduleClearBtn = document.getElementById('scheduleClearBtn');
+  const scheduleDateHeading = document.getElementById('scheduleDateHeading');
+  const scheduleCountText = document.getElementById('scheduleCountText');
+  const scheduleEventsGrid = document.getElementById('scheduleEventsGrid');
+
 
   // Initialize Player
   const playerContainer = document.getElementById('universalPlayerContainer');
@@ -95,9 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tabSports.classList.toggle('active', tabName === 'sports');
     tabTv.classList.toggle('active', tabName === 'tv');
+    tabSchedule.classList.toggle('active', tabName === 'schedule');
     tabFavorites.classList.toggle('active', tabName === 'favorites');
 
-    if (tabName === 'favorites') {
+    if (tabName === 'schedule') {
+      loadSchedule();
+    } else if (tabName === 'favorites') {
       renderFavorites();
     }
   }
@@ -630,6 +649,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 7. FAVORITES SYSTEM ---
+  function isFavorite(id) {
+    return state.favorites.some(f => f.id === id);
+  }
+
   function toggleFavorite(item) {
     const idx = state.favorites.findIndex(f => f.id === item.id);
     const itemName = item.title || item.name || 'Élément';
@@ -1000,9 +1023,237 @@ document.addEventListener('DOMContentLoaded', () => {
       state.tvSearchQuery = '';
       loadChannels(true);
     });
+
+    // Schedule Sub-search
+    if (scheduleSearchInput) {
+      let schedDebounce;
+      scheduleSearchInput.addEventListener('input', () => {
+        const q = scheduleSearchInput.value.trim();
+        if (scheduleClearBtn) scheduleClearBtn.style.display = q ? 'block' : 'none';
+        state.scheduleQuery = q;
+
+        clearTimeout(schedDebounce);
+        schedDebounce = setTimeout(() => {
+          loadSchedule();
+        }, 250);
+      });
+
+      if (scheduleClearBtn) {
+        scheduleClearBtn.addEventListener('click', () => {
+          scheduleSearchInput.value = '';
+          scheduleClearBtn.style.display = 'none';
+          state.scheduleQuery = '';
+          loadSchedule();
+        });
+      }
+    }
+  }
+
+  // --- 8.5 CALENDAR / SCHEDULE CONTROLLER ---
+  async function loadSchedule() {
+    if (state.scheduleLoading) return;
+    state.scheduleLoading = true;
+
+    if (scheduleEventsGrid) {
+      scheduleEventsGrid.innerHTML = `
+        <div class="loading-spinner" style="grid-column: 1 / -1;">
+          <div class="spinner-ring"></div>
+          <span>Chargement du calendrier des matchs...</span>
+        </div>
+      `;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        date: state.scheduleDate,
+        sport: state.scheduleSport,
+        q: state.scheduleQuery
+      });
+
+      const res = await fetch(`/api/schedule?${params}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      renderScheduleDays(data.availableDays || []);
+      renderScheduleSports(data.availableSports || []);
+      renderScheduleEvents(data.events || []);
+
+      if (scheduleCountBadge && data.totalEvents) {
+        scheduleCountBadge.textContent = `${data.totalEvents} Événements`;
+      }
+      if (scheduleCountText) {
+        scheduleCountText.textContent = `${data.totalEvents} événement${data.totalEvents > 1 ? 's' : ''}`;
+      }
+      if (scheduleDateHeading) {
+        const activeDay = (data.availableDays || []).find(d => d.id === state.scheduleDate);
+        scheduleDateHeading.textContent = activeDay ? `Programme • ${activeDay.label} (${activeDay.dateStr})` : "Programme TV & Matchs";
+      }
+    } catch (err) {
+      console.error('Schedule fetch error:', err);
+      if (scheduleEventsGrid) {
+        scheduleEventsGrid.innerHTML = `
+          <div class="empty-state-box" style="grid-column: 1 / -1;">
+            <i class="ph-bold ph-warning-circle empty-icon" style="color: #f59e0b;"></i>
+            <h3>Impossible de charger le calendrier</h3>
+            <p>${err.message}</p>
+            <button type="button" class="btn-primary" style="margin-top: 1rem;" id="retryScheduleBtn">Réessayer</button>
+          </div>
+        `;
+        document.getElementById('retryScheduleBtn')?.addEventListener('click', () => loadSchedule());
+      }
+    } finally {
+      state.scheduleLoading = false;
+    }
+  }
+
+  function renderScheduleDays(days) {
+    if (!calendarDaysBar) return;
+    calendarDaysBar.innerHTML = '';
+
+    days.forEach(day => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = `calendar-day-pill ${day.id === state.scheduleDate ? 'active' : ''}`;
+      pill.innerHTML = `
+        <span class="day-label">${escapeHtml(day.label)}</span>
+        <span class="day-date-str">${escapeHtml(day.dateStr)}</span>
+        <span class="day-count-badge">${day.count}</span>
+      `;
+
+      pill.addEventListener('click', () => {
+        state.scheduleDate = day.id;
+        loadSchedule();
+      });
+
+      calendarDaysBar.appendChild(pill);
+    });
+  }
+
+  function renderScheduleSports(sports) {
+    if (!calendarSportsBar) return;
+    calendarSportsBar.innerHTML = '';
+
+    sports.forEach(sport => {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = `calendar-sport-pill ${sport.name === state.scheduleSport ? 'active' : ''}`;
+      pill.innerHTML = `
+        <span>${escapeHtml(sport.name)}</span>
+        <span class="sport-count">(${sport.count})</span>
+      `;
+
+      pill.addEventListener('click', () => {
+        state.scheduleSport = sport.name;
+        loadSchedule();
+      });
+
+      calendarSportsBar.appendChild(pill);
+    });
+  }
+
+  function renderScheduleEvents(events) {
+    if (!scheduleEventsGrid) return;
+    scheduleEventsGrid.innerHTML = '';
+
+    if (!events.length) {
+      scheduleEventsGrid.innerHTML = `
+        <div class="empty-state-box" style="grid-column: 1 / -1;">
+          <i class="ph-bold ph-calendar-x empty-icon"></i>
+          <h3>Aucun événement trouvé</h3>
+          <p>Aucun match ne correspond aux filtres sélectionnés pour ce jour.</p>
+        </div>
+      `;
+      return;
+    }
+
+    events.forEach(ev => {
+      const card = document.createElement('div');
+      card.className = `schedule-card ${ev.live ? 'is-live' : ''}`;
+
+      const isFav = isFavorite(ev.id);
+      const categoryTag = ev.category ? `<span class="schedule-category-tag">${escapeHtml(ev.category)}</span>` : '';
+      const tournTag = ev.tournament ? `<span class="schedule-tournament-tag">${escapeHtml(ev.tournament)}</span>` : '';
+
+      // Time badge
+      const timeBadge = ev.live 
+        ? `<span class="schedule-time-badge"><span class="schedule-live-dot"></span> EN DIRECT</span>`
+        : `<span class="schedule-time-badge"><i class="ph-bold ph-clock"></i> ${escapeHtml(ev.time || 'À venir')}</span>`;
+
+      // Channels
+      const channelsHtml = (ev.sources || []).map((src, i) => {
+        const chName = src.channelName || (src.source ? `${src.source.toUpperCase()} ${src.channelId || ''}` : `Flux ${i + 1}`);
+        return `
+          <button type="button" class="schedule-ch-pill" data-event-id="${ev.id}" data-channel-id="${src.channelId || ''}">
+            <i class="ph-bold ph-play"></i>
+            <span>${escapeHtml(chName)}</span>
+          </button>
+        `;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="schedule-card-header">
+          ${timeBadge}
+          <div class="schedule-meta-row">
+            ${categoryTag}
+            ${tournTag}
+          </div>
+          <button type="button" class="btn-fav-card ${isFav ? 'is-favorited' : ''}" title="Ajouter aux favoris">
+            <i class="${isFav ? 'ph-fill' : 'ph-bold'} ph-heart"></i>
+          </button>
+        </div>
+        <div class="schedule-card-body">
+          <h3 class="schedule-event-title">${escapeHtml(ev.title)}</h3>
+        </div>
+        <div class="schedule-card-footer">
+          <span class="schedule-channels-label">
+            <i class="ph-bold ph-broadcast"></i>
+            <span>${ev.sources?.length || 0} Chaîne${(ev.sources?.length || 0) > 1 ? 's' : ''} disponible${(ev.sources?.length || 0) > 1 ? 's' : ''}</span>
+          </span>
+          <div class="schedule-channels-list">
+            ${channelsHtml || '<span class="text-subtle" style="font-size:0.75rem;">Flux en attente</span>'}
+          </div>
+        </div>
+      `;
+
+      // Favorite click
+      const favBtn = card.querySelector('.btn-fav-card');
+      if (favBtn) {
+        favBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleFavorite({
+            id: ev.id,
+            title: ev.title,
+            category: ev.category,
+            poster: ev.poster,
+            live: ev.live,
+            type: 'match'
+          });
+          const nowFav = isFavorite(ev.id);
+          favBtn.classList.toggle('is-favorited', nowFav);
+          favBtn.querySelector('i').className = `${nowFav ? 'ph-fill' : 'ph-bold'} ph-heart`;
+        });
+      }
+
+      // Channel pills click -> launches stream!
+      card.querySelectorAll('.schedule-ch-pill').forEach(pill => {
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectItem(ev.id);
+        });
+      });
+
+      // Card body click also launches primary stream
+      card.querySelector('.schedule-card-body')?.addEventListener('click', () => {
+        selectItem(ev.id);
+      });
+
+
+      scheduleEventsGrid.appendChild(card);
+    });
   }
 
   function setupShortcuts() {
+
     document.addEventListener('keydown', (e) => {
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault();

@@ -6,7 +6,11 @@
       "https://dlive.sx",
       "https://dlhd.so",
       "https://daddylive.mp",
-      "https://dlhd.sx"
+      "https://dlhd.sx",
+      "https://daddylive.pk",
+      "https://dlhd.pk",
+      "https://dlhd.st",
+      "https://dlstreams.st"
     ]
   },
   "ntv": {
@@ -14,7 +18,10 @@
     "active": "https://ntv.cx",
     "mirrors": [
       "https://ntv.cx",
-      "https://ntvstream.com"
+      "https://ntvstream.com",
+      "https://ntvs.cx",
+      "https://ntv.st",
+      "https://ntvstream.cx"
     ]
   },
   "cdnlive": {

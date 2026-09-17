@@ -17,7 +17,7 @@
   <!-- HLS.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
   <!-- CSS -->
-  <link rel="stylesheet" href="/style.css?v=3.2">
+  <link rel="stylesheet" href="/style.css?v=3.3">
 </head>
 <body class="app-body">
   <div class="app-backdrop"></div>
@@ -48,6 +48,11 @@
             <i class="ph-bold ph-television"></i>
             <span>Chaînes 24/7</span>
             <span class="tab-badge pill-purple" id="tvCountBadge">3 400+</span>
+          </button>
+          <button type="button" class="nav-tab" data-tab="schedule">
+            <i class="ph-bold ph-calendar-blank"></i>
+            <span>Calendrier TV</span>
+            <span class="tab-badge pill-blue" id="scheduleCountBadge">Programme</span>
           </button>
           <button type="button" class="nav-tab" data-tab="favorites">
             <i class="ph-bold ph-heart"></i>
@@ -266,6 +271,46 @@
           </div>
         </div>
       </section>
+
+      <!-- ================= 4. SCHEDULE / CALENDAR TAB ================= -->
+      <section class="tab-content" id="tabSchedule">
+        <!-- Date Selector Ribbon & Search Bar -->
+        <div class="calendar-header-bar">
+          <div class="calendar-days-scroll" id="calendarDaysBar">
+            <!-- Dynamically populated day pills: Aujourd'hui, Demain, etc. -->
+          </div>
+          <div class="calendar-search-wrap">
+            <i class="ph-bold ph-magnifying-glass"></i>
+            <input type="text" id="scheduleSearchInput" placeholder="Filtrer le programme (ex: PSG, Formula 1, NBA)...">
+            <button type="button" class="search-clear-btn" id="scheduleClearBtn" style="display: none;"><i class="ph-bold ph-x"></i></button>
+          </div>
+        </div>
+
+        <!-- Sport Category Filter Bar -->
+        <div class="calendar-sports-bar" id="calendarSportsBar">
+          <!-- Dynamically populated: Tous, Football, Basketball, Motorsport, etc. -->
+        </div>
+
+        <!-- Schedule Section Title -->
+        <div class="section-title-row schedule-subhead-row">
+          <div class="schedule-heading-wrap">
+            <h2 class="section-heading" id="scheduleDateHeading">Programme d'Aujourd'hui</h2>
+            <span class="section-count" id="scheduleCountText">Chargement...</span>
+          </div>
+          <div class="schedule-timezone-badge">
+            <i class="ph-bold ph-clock"></i>
+            <span>Heure Locale (GMT+2)</span>
+          </div>
+        </div>
+
+        <!-- Schedule Events Timeline Grid -->
+        <div class="schedule-timeline-grid" id="scheduleEventsGrid">
+          <div class="loading-spinner">
+            <div class="spinner-ring"></div>
+            <span>Chargement du calendrier des matchs...</span>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -276,6 +321,6 @@
   </div>
 
   <!-- App Controller -->
-  <script type="module" src="/app.js?v=3.2"></script>
+  <script type="module" src="/app.js?v=3.3"></script>
 </body>
 </html>

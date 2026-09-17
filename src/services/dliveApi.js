@@ -12,6 +12,11 @@ let dliveScheduleCache = {
   lastFetched: 0
 };
 
+let dliveFullScheduleCache = {
+  data: [],
+  lastFetched: 0
+};
+
 const DLIVE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -73,6 +78,21 @@ export async function getDliveChannels() {
   }
 }
 
+
+/**
+ * Fetch and parse the full structured multi-day schedule from DLive
+ */
+export async function getDliveFullSchedule() {
+  const now = Date.now();
+  if (dliveFullScheduleCache.data.length && (now - dliveFullScheduleCache.lastFetched) < DLIVE_CACHE_TTL) {
+    return dliveFullScheduleCache.data;
+  }
+
+  // Ensure schedule is fetched
+  await getDliveSchedule();
+  return dliveFullScheduleCache.data;
+}
+
 /**
  * Fetch and parse the live schedule from https://dlive.sx/
  */
@@ -97,64 +117,111 @@ export async function getDliveSchedule() {
     }
 
     const html = await res.text();
-    const events = [];
-    const eventBlocks = html.split('<div class="schedule__event">').slice(1);
+    const flatEvents = [];
+    const fullDays = [];
 
-    for (let i = 0; i < eventBlocks.length; i++) {
-      const block = eventBlocks[i];
+    // Parse multi-day blocks
+    const dayBlocks = html.split('<div class="schedule__day">').slice(1);
 
-      // Extract time
-      const timeMatch = block.match(/class=["']schedule__time["'][^>]*data-time=["']([^"']+)["']/i) ||
-                        block.match(/class=["']schedule__time["'][^>]*>([^<]+)<\/span>/i);
-      const time = timeMatch ? timeMatch[1].trim() : '';
+    for (let dayIdx = 0; dayIdx < dayBlocks.length; dayIdx++) {
+      const dayBlock = dayBlocks[dayIdx];
+      const dayTitleM = dayBlock.match(/class="schedule__dayTitle"[^>]*>([\s\S]*?)<\/div>/i);
+      const rawDayTitle = dayTitleM ? dayTitleM[1].replace(/<[^>]+>/g, '').trim() : `Jour ${dayIdx + 1}`;
+      
+      const dayObj = {
+        dayIndex: dayIdx,
+        dayTitle: rawDayTitle,
+        isToday: dayIdx === 0,
+        categories: []
+      };
 
-      // Extract title
-      const titleMatch = block.match(/class=["']schedule__eventTitle["'][^>]*>([\s\S]*?)<\/span>/i);
-      let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-      if (!title) continue;
+      const catBlocks = dayBlock.split(/<div class="schedule__category(?:\s+is-expanded)?"\s*>/i);
 
-      // Clean title
-      title = decodeHtmlEntities(title);
+      for (let catIdx = 1; catIdx < catBlocks.length; catIdx++) {
+        const catBlock = catBlocks[catIdx];
+        const catNameM = catBlock.match(/class="card__meta"[^>]*>([\s\S]*?)<\/div>/i) ||
+                         catBlock.match(/class="schedule__catHeader"[^>]*>([\s\S]*?)<\/div>/i);
+        const rawCatName = catNameM ? catNameM[1].replace(/<[^>]+>/g, '').trim() : 'Général';
+        const cleanCatName = decodeHtmlEntities(rawCatName);
 
-      // Extract all channel sources
-      const sources = [];
-      const chRegex = /<a[^>]+href=["']\/(?:watch\.php\?id=|stream\/stream-)(\d+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
-      let cm;
-      while ((cm = chRegex.exec(block)) !== null) {
-        sources.push({
-          source: 'dlive',
-          id: `dlive-${cm[1]}`,
-          channelId: cm[1],
-          channelName: decodeHtmlEntities(cm[2].replace(/<[^>]+>/g, '').trim()),
-          server: 'dlive',
-          url: `${dliveBase}/stream/stream-${cm[1]}.php`
-        });
+        const eventBlocks = catBlock.split('<div class="schedule__event">').slice(1);
+        const catEvents = [];
+
+        for (let evIdx = 0; evIdx < eventBlocks.length; evIdx++) {
+          const eb = eventBlocks[evIdx];
+
+          // Extract time
+          const timeM = eb.match(/class=["']schedule__time["'][^>]*data-time=["']([^"']+)["']/i) ||
+                        eb.match(/class=["']schedule__time["'][^>]*>([^<]+)<\/span>/i);
+          const time = timeM ? timeM[1].trim() : '';
+
+          // Extract title
+          const titleM = eb.match(/class=["']schedule__eventTitle["'][^>]*>([\s\S]*?)<\/span>/i);
+          let title = titleM ? titleM[1].replace(/<[^>]+>/g, '').trim() : '';
+          if (!title) continue;
+          title = decodeHtmlEntities(title);
+
+          // Extract channel sources
+          const sources = [];
+          const chRegex = /<a[^>]+href=["']\/(?:watch\.php\?id=|stream\/stream-)(\d+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+          let cm;
+          while ((cm = chRegex.exec(eb)) !== null) {
+            sources.push({
+              source: 'dlive',
+              id: `dlive-${cm[1]}`,
+              channelId: cm[1],
+              channelName: decodeHtmlEntities(cm[2].replace(/<[^>]+>/g, '').trim()),
+              server: 'dlive',
+              url: `${dliveBase}/stream/stream-${cm[1]}.php`
+            });
+          }
+
+          if (!sources.length) continue;
+
+          const eventId = `ntv-dlive-match-d${dayIdx}-c${catIdx}-e${evIdx}-${sources[0].channelId}`;
+          const isLive = dayIdx === 0 && (eb.includes('live-pulse') || eb.includes('EN DIRECT') || time.includes(':'));
+
+          const eventItem = {
+            id: eventId,
+            rawId: `${dayIdx}-${catIdx}-${evIdx}`,
+            server: 'dlive',
+            title,
+            category: cleanCatName,
+            dayTitle: rawDayTitle,
+            dayIndex: dayIdx,
+            time,
+            date: Date.now() + (dayIdx * 86400000),
+            live: isLive,
+            poster: generateMatchPoster(title, cleanCatName),
+            sources,
+            type: 'tv'
+          };
+
+          catEvents.push(eventItem);
+          flatEvents.push(eventItem);
+        }
+
+        if (catEvents.length > 0) {
+          dayObj.categories.push({
+            name: cleanCatName,
+            events: catEvents
+          });
+        }
       }
 
-      if (!sources.length) continue;
-
-      const eventId = `ntv-dlive-match-${i}-${sources[0].channelId}`;
-      const isLive = block.includes('live-pulse') || block.includes('EN DIRECT') || time.includes(':');
-
-      events.push({
-        id: eventId,
-        rawId: String(i),
-        server: 'dlive',
-        title,
-        category: 'Sports & Live',
-        time,
-        date: Date.now(),
-        live: true, // events currently on schedule are active/live today
-        poster: generateMatchPoster(title, 'DLive Sports'),
-        sources,
-        type: 'tv'
-      });
+      if (dayObj.categories.length > 0) {
+        fullDays.push(dayObj);
+      }
     }
 
-    dliveScheduleCache.data = events;
+    dliveFullScheduleCache.data = fullDays;
+    dliveFullScheduleCache.lastFetched = now;
+
+    dliveScheduleCache.data = flatEvents;
     dliveScheduleCache.lastFetched = now;
-    console.log(`[dliveApi] Fetched ${events.length} schedule events from dlive.sx.`);
-    return events;
+
+    console.log(`[dliveApi] Fetched ${flatEvents.length} schedule events across ${fullDays.length} days from dlive.`);
+    return flatEvents;
   } catch (e) {
     console.error('[dliveApi] Error fetching schedule from dlive.sx:', e.message);
     return dliveScheduleCache.data;

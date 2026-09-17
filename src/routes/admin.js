@@ -5,7 +5,8 @@ import {
   addMirror, 
   removeMirror, 
   checkAllHealth, 
-  checkMirrorHealth 
+  checkMirrorHealth,
+  syncFromOfficialHubs
 } from '../services/mirrorManager.js';
 import { resolveStream } from '../services/streamResolver.js';
 import { clearCache, getMatchesStats } from '../services/ntvApi.js';
@@ -100,6 +101,19 @@ router.post('/mirrors/remove', (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+/**
+ * Auto-discover & sync backup mirrors from official directories (daddylive.pk & ntvx.link)
+ */
+router.post('/mirrors/sync-from-hubs', async (req, res) => {
+  try {
+    const report = await syncFromOfficialHubs();
+    res.json({ success: true, report });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 /**
  * Test stream resolution for any channel or match ID
