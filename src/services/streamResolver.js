@@ -41,6 +41,88 @@ export async function resolveStream(id, baseUrl) {
   return streams;
 }
 
+const dliveStreamCache = new Map();
+const DLIVE_STREAM_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+function decodeEConfig(str) {
+  const order = [2, 0, 3, 1];
+  const chunksCount = 4;
+  const s1 = Buffer.from(str, 'base64').toString('binary');
+  const len = s1.length;
+  const chunkSize = Math.ceil(len / chunksCount);
+  const chunks = [];
+  let offset = 0;
+  for (let i = 0; i < chunksCount; i++) {
+    chunks.push(s1.substr(offset, chunkSize));
+    offset += chunkSize;
+  }
+  const reordered = [];
+  for (let i = 0; i < order.length; i++) {
+    let chunk = String(chunks[i]);
+    chunk = chunk.slice(0, 3) + chunk.slice(4);
+    reordered[order[i]] = Buffer.from(chunk, 'base64').toString('binary');
+  }
+  const joined = reordered.join('');
+  const finalStr = Buffer.from(joined, 'base64').toString('utf-8');
+  return JSON.parse(finalStr);
+}
+
+/**
+ * Dynamically extract live M3U8 from dlive.sx / tiestep with signed token
+ */
+export async function fetchDliveRealStream(channelId) {
+  const cleanId = String(channelId).replace(/[^0-9]/g, '');
+  if (!cleanId) return null;
+
+  const cached = dliveStreamCache.get(cleanId);
+  if (cached && (Date.now() - cached.time) < DLIVE_STREAM_CACHE_TTL) {
+    return cached.data;
+  }
+
+  try {
+    const streamPhpUrl = `https://dlive.sx/stream/stream-${cleanId}.php`;
+    const res1 = await fetch(streamPhpUrl, {
+      headers: {
+        'User-Agent': CONFIG.USER_AGENT,
+        'Referer': `https://dlive.sx/watch.php?id=${cleanId}`
+      }
+    });
+    if (!res1.ok) return null;
+    const html1 = await res1.text();
+
+    const iframeMatch = html1.match(/<iframe[^>]+src=["'](https?:\/\/[^"']*tiestep[^"']*)["']/i);
+    if (!iframeMatch) return null;
+    const tiestepUrl = iframeMatch[1];
+
+    const res2 = await fetch(tiestepUrl, {
+      headers: {
+        'User-Agent': CONFIG.USER_AGENT,
+        'Referer': streamPhpUrl
+      }
+    });
+    if (!res2.ok) return null;
+    const html2 = await res2.text();
+
+    const econfigMatch = html2.match(/window\._econfig\s*=\s*['"]([^'"]+)['"]/);
+    if (!econfigMatch) return null;
+
+    const config = decodeEConfig(econfigMatch[1]);
+    const streamUrl = config.stream_url || config.stream_url_nop2p;
+    if (!streamUrl) return null;
+
+    const data = {
+      streamUrl,
+      referer: 'https://tiestep.top/'
+    };
+
+    dliveStreamCache.set(cleanId, { data, time: Date.now() });
+    return data;
+  } catch (e) {
+    console.warn(`[fetchDliveRealStream] Error for channel ${cleanId}:`, e.message);
+    return null;
+  }
+}
+
 /**
  * Resolver for DaddyLive / DLHD / DLive channels
  */
@@ -50,28 +132,47 @@ export async function resolveDlhd(channelId, baseUrl, labelPrefix = 'DLHD') {
 
   if (!cleanId) return streams;
 
-  // Direct fast stream (verified working without headers)
-  const directM3u8 = `https://premium.hls.st/playlist/premium${cleanId}.m3u8`;
+  // 1. Try dynamic real DLive / Tiestep stream extraction first
+  const realStream = await fetchDliveRealStream(cleanId);
+  if (realStream && realStream.streamUrl) {
+    streams.push({
+      name: `NTVio • ${labelPrefix}`,
+      title: `⚡ Direct HD (DLive CDN)`,
+      url: realStream.streamUrl,
+      behaviorHints: { notWebReady: false }
+    });
 
+    if (baseUrl) {
+      const proxyUrl = `${baseUrl}/proxy/hls?url=${encodeURIComponent(realStream.streamUrl)}&ref=${encodeURIComponent(realStream.referer)}`;
+      streams.push({
+        name: `NTVio • ${labelPrefix} (Proxy)`,
+        title: `🛡️ Flux Sécurisé (Anti-Bug FAI / CORS)`,
+        url: proxyUrl,
+        behaviorHints: { notWebReady: false }
+      });
+    }
+  }
+
+  // 2. Static M3U8 fallback
+  const directM3u8 = `https://premium.hls.st/playlist/premium${cleanId}.m3u8`;
   streams.push({
-    name: `NTVio • ${labelPrefix}`,
-    title: `⚡ Direct M3U8 (HD)`,
+    name: `NTVio • ${labelPrefix} (M3U8)`,
+    title: streams.length ? `⚡ Source Secours HD` : `⚡ Direct M3U8 (HD)`,
     url: directM3u8,
     behaviorHints: { notWebReady: false }
   });
 
-  // Proxy fallback (bypasses ISP block, CORS, and geo-restrictions)
   if (baseUrl) {
     const proxyUrl = `${baseUrl}/proxy/hls?url=${encodeURIComponent(directM3u8)}&ref=${encodeURIComponent('https://iplayer.is/')}`;
     streams.push({
       name: `NTVio • ${labelPrefix} (Proxy)`,
-      title: `🛡️ Flux Sécurisé (Anti-Blocage FAI / CORS)`,
+      title: `🛡️ Flux Secours (Proxy Anti-Bug)`,
       url: proxyUrl,
       behaviorHints: { notWebReady: false }
     });
   }
 
-  // Web player fallback (opens official DLive watch page with rel=noreferrer to avoid hotlink block)
+  // 3. Web player fallback (opens official DLive watch page with rel=noreferrer)
   streams.push({
     name: `DLive.sx • [Officiel]`,
     title: `🌐 DLive.sx Officiel ↗`,
@@ -307,10 +408,30 @@ export async function resolveMatchStream(matchId, baseUrl) {
                  (sourceUrl.match(/stream-(\d+)\.php/) || sourceUrl.match(/watch\.php\?id=(\d+)/) || [])[1];
 
     if (chId && chId !== '00') {
+      const realDlive = await fetchDliveRealStream(chId);
+      if (realDlive && realDlive.streamUrl) {
+        streams.push({
+          name: `NTVio • [${serverName}]`,
+          title: `⚽ Source ${sourceIndex}: ${label} [Direct HD]`,
+          url: realDlive.streamUrl,
+          behaviorHints: { notWebReady: false }
+        });
+
+        if (baseUrl) {
+          streams.push({
+            name: `NTVio • [${serverName}] (Proxy)`,
+            title: `🛡️ Source ${sourceIndex}: ${label} [Proxy Anti-Bug]`,
+            url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(realDlive.streamUrl)}&ref=${encodeURIComponent(realDlive.referer)}`,
+            behaviorHints: { notWebReady: false }
+          });
+        }
+      }
+
+      // Static M3U8 fallback
       const directM3u8 = `https://premium.hls.st/playlist/premium${chId}.m3u8`;
       streams.push({
-        name: `NTVio • [${serverName}]`,
-        title: `⚽ Source ${sourceIndex}: ${label} [M3U8 HD]`,
+        name: `NTVio • [${serverName}] (M3U8)`,
+        title: streams.length ? `⚽ Source ${sourceIndex}: ${label} [Secours HD]` : `⚽ Source ${sourceIndex}: ${label} [M3U8 HD]`,
         url: directM3u8,
         behaviorHints: { notWebReady: false }
       });
@@ -318,7 +439,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
       if (baseUrl) {
         streams.push({
           name: `NTVio • [${serverName}] (Proxy)`,
-          title: `🛡️ Source ${sourceIndex}: ${label} [Proxy Anti-Bug]`,
+          title: `🛡️ Source ${sourceIndex}: ${label} [Secours Proxy]`,
           url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(directM3u8)}&ref=${encodeURIComponent('https://iplayer.is/')}`,
           behaviorHints: { notWebReady: false }
         });
