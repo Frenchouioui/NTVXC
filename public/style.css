@@ -763,6 +763,59 @@ body {
   overflow: hidden;
 }
 
+/* ==========================================================================
+   Real Fullscreen Mode (Monitor Takeover)
+   ========================================================================== */
+
+.video-container:fullscreen,
+.video-container:-webkit-full-screen,
+.video-container:-moz-full-screen,
+.video-container:-ms-fullscreen,
+.video-container.is-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  aspect-ratio: auto !important;
+  background: #000 !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  z-index: 2147483647 !important;
+}
+
+.video-container:fullscreen #mainVideo,
+.video-container:-webkit-full-screen #mainVideo,
+.video-container:-moz-full-screen #mainVideo,
+.video-container.is-fullscreen #mainVideo {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  object-fit: contain !important;
+  background: #000 !important;
+}
+
+.video-container:fullscreen #embedIframe,
+.video-container:-webkit-full-screen #embedIframe,
+.video-container:-moz-full-screen #embedIframe,
+.video-container.is-fullscreen #embedIframe {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  border: none !important;
+  background: #000 !important;
+}
+
+.video-container:fullscreen .player-controls,
+.video-container:-webkit-full-screen .player-controls,
+.video-container:-moz-full-screen .player-controls,
+.video-container.is-fullscreen .player-controls {
+  z-index: 2147483647 !important;
+  padding: 2.5rem 3rem 1.75rem !important;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%) !important;
+}
+
 #mainVideo {
   width: 100%;
   height: 100%;

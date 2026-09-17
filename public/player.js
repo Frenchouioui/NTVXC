@@ -205,6 +205,53 @@ export class UniversalPlayer {
 
     // Fullscreen
     this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    this.videoEl.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      this.toggleFullscreen();
+    });
+
+    const onFullscreenChange = () => {
+      const isFs = !!(document.fullscreenElement || 
+                      document.webkitFullscreenElement || 
+                      document.mozFullScreenElement || 
+                      document.msFullscreenElement);
+      if (this.fullscreenIcon) {
+        this.fullscreenIcon.className = isFs ? 'ph-bold ph-corners-in' : 'ph-bold ph-corners-out';
+      }
+      if (this.fullscreenBtn) {
+        this.fullscreenBtn.title = isFs ? 'Quitter le plein écran (F)' : 'Plein écran (F)';
+      }
+      const videoContainer = this.container.querySelector('.video-container');
+      if (videoContainer) {
+        videoContainer.classList.toggle('is-fullscreen', isFs);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    document.addEventListener('mozfullscreenchange', onFullscreenChange);
+
+    // Auto-hide controls in fullscreen after mouse inactivity
+    let controlsTimer = null;
+    const vContainer = this.container.querySelector('.video-container');
+    if (vContainer) {
+      vContainer.addEventListener('mousemove', () => {
+        if (this.controls) this.controls.style.opacity = '1';
+        clearTimeout(controlsTimer);
+        controlsTimer = setTimeout(() => {
+          const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+          if (isFs && this.isPlaying && this.controls) {
+            this.controls.style.opacity = '0';
+          }
+        }, 3000);
+      });
+      vContainer.addEventListener('mouseleave', () => {
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (isFs && this.isPlaying && this.controls) {
+          this.controls.style.opacity = '0';
+        }
+      });
+    }
 
     // PiP
     this.pipBtn.addEventListener('click', async () => {
@@ -865,13 +912,36 @@ export class UniversalPlayer {
   }
 
   toggleFullscreen() {
-    const wrapper = document.getElementById('playerWrapper');
-    if (!document.fullscreenElement) {
-      wrapper.requestFullscreen().catch(err => console.warn(err));
-      this.fullscreenIcon.className = 'ph-bold ph-corners-in';
+    const videoContainer = this.container.querySelector('.video-container') || document.querySelector('.video-container');
+    if (!videoContainer) return;
+
+    const isFullscreen = !!(document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement);
+
+    if (!isFullscreen) {
+      if (videoContainer.requestFullscreen) {
+        videoContainer.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
+      } else if (videoContainer.webkitRequestFullscreen) {
+        videoContainer.webkitRequestFullscreen();
+      } else if (videoContainer.mozRequestFullScreen) {
+        videoContainer.mozRequestFullScreen();
+      } else if (videoContainer.msRequestFullscreen) {
+        videoContainer.msRequestFullscreen();
+      } else if (this.videoEl.webkitEnterFullscreen) {
+        this.videoEl.webkitEnterFullscreen();
+      }
     } else {
-      document.exitFullscreen().catch(err => console.warn(err));
-      this.fullscreenIcon.className = 'ph-bold ph-corners-out';
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(err => console.warn('Exit fullscreen error:', err));
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
     }
   }
 
