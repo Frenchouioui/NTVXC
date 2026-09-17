@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchClearBtn = document.getElementById('searchClearBtn');
   const loadMoreChannelsBtn = document.getElementById('loadMoreChannelsBtn');
   const paginationRow = document.getElementById('paginationRow');
+  const statsPill = document.getElementById('statsPill');
   const statsLiveText = document.getElementById('statsLiveText');
   const liveMatchBadge = document.getElementById('liveMatchBadge');
   const tvCountBadge = document.getElementById('tvCountBadge');
@@ -128,7 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) return;
       const data = await res.json();
       if (statsLiveText) {
-        statsLiveText.textContent = `${data.liveMatchesCount} Matchs en Direct • ${data.channelsCount.toLocaleString()}+ Chaînes`;
+        statsLiveText.textContent = `${data.liveMatchesCount} Live • ${(data.channelsCount / 1000).toFixed(1)}k Chaînes`;
+        if (statsPill) {
+          statsPill.title = `${data.liveMatchesCount} Matchs en direct • ${data.channelsCount.toLocaleString()} Chaînes TV`;
+        }
       }
       if (liveMatchBadge) {
         liveMatchBadge.textContent = `● ${data.liveMatchesCount} LIVE`;
