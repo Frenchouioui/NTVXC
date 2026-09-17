@@ -26,7 +26,7 @@ export class UniversalPlayer {
       <div class="player-wrapper" id="playerWrapper">
         <div class="video-container" id="videoContainer">
           <video id="mainVideo" playsinline preload="auto"></video>
-          <iframe id="embedIframe" style="display: none;" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
+          <iframe id="embedIframe" style="display: none; overflow: hidden;" scrolling="no" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
 
           <!-- Loading Spinner Overlay -->
           <div class="player-overlay loading-overlay" id="playerLoading" style="display: none;">
@@ -317,9 +317,10 @@ export class UniversalPlayer {
     this.renderSourceChips(streams);
 
     if (streams.length > 0) {
-      // Prioritize playable M3U8 / Proxy stream over external web link
+      // Prioritize playable direct/proxy M3U8 streams FIRST over third-party embeds
+      const nativeM3u8Idx = streams.findIndex(s => s.url && !s.isEmbed && (s.url.includes('.m3u8') || s.url.includes('/proxy/hls')));
       const firstPlayableIdx = streams.findIndex(s => !!s.url);
-      const targetIdx = firstPlayableIdx >= 0 ? firstPlayableIdx : 0;
+      const targetIdx = nativeM3u8Idx >= 0 ? nativeM3u8Idx : (firstPlayableIdx >= 0 ? firstPlayableIdx : 0);
       await this.selectSource(targetIdx);
     } else {
       this.showError(true, 'Aucun flux disponible pour cet événement', 'Revenez à l\'approche du début du match');
@@ -383,7 +384,17 @@ export class UniversalPlayer {
 
       const matchPattern = rawTitle.match(/Source\s*\d+\s*:\s*([^\[]+)/i);
       if (matchPattern && matchPattern[1]) {
-        bName = matchPattern[1].trim();
+        let name = matchPattern[1].trim();
+        // Clean up internal provider slugs like "DE ECHO barcelona-vs-racing-santander-football-1570385"
+        if (/^(?:DE\s+)?(?:ECHO|ADMIN|DELTA|EMBEDINDIA)\b/i.test(name)) {
+          const mProv = name.match(/^(?:DE\s+)?(ECHO|ADMIN|DELTA|EMBEDINDIA)/i);
+          const provName = mProv ? mProv[1].toUpperCase() : 'SERVEUR';
+          name = `${provName} (Serveur)`;
+        }
+        bName = name;
+      } else if (rawTitle.includes('Direct M3U8') || rawTitle.includes('Flux Sécurisé')) {
+        // Group 24/7 TV channels and single-feed items under one unified broadcaster
+        bName = this.currentItem?.title || 'Flux Principal';
       } else if (rawTitle) {
         bName = rawTitle.replace(/\[[^\]]+\]/g, '').replace(/⚡|🛡️|⚽|🌐/g, '').trim();
       }
@@ -424,8 +435,8 @@ export class UniversalPlayer {
       else if (nUpper.includes('SPAIN') || nUpper.includes('MOVISTAR')) flag = '🇪🇸';
       else if (nUpper.includes('PORTUGAL') || nUpper.includes('SPORT TV')) flag = '🇵🇹';
       else if (nUpper.includes('USA') || nUpper.includes('ESPN') || nUpper.includes('FOX') || nUpper.includes('NBC')) flag = '🇺🇸';
-      else if (nUpper.includes('DE') || nUpper.includes('GERMANY')) flag = '🇩🇪';
-      else if (nUpper.includes('IT') || nUpper.includes('ITALY')) flag = '🇮🇹';
+      else if (nUpper.includes('GERMANY')) flag = '🇩🇪';
+      else if (nUpper.includes('ITALY')) flag = '🇮🇹';
 
       bChip.innerHTML = `
         <span class="broadcaster-flag">${flag}</span>
@@ -438,7 +449,8 @@ export class UniversalPlayer {
           t.classList.toggle('active', i === gIdx);
         });
         this.renderModesForGroup(grp);
-        const playableEntry = grp.streams[0];
+        // Prioritize native Direct / Proxy M3U8 over embed if available in group
+        const playableEntry = grp.streams.find(e => e.stream.url && !e.stream.isEmbed && (e.stream.url.includes('.m3u8') || e.stream.url.includes('/proxy/hls'))) || grp.streams[0];
         if (playableEntry) {
           this.selectSource(playableEntry.originalIdx);
         }
