@@ -393,11 +393,7 @@ export class UniversalPlayer {
         .replace(/\/stream\/stream-(\d+)\.php/, '/watch.php?id=$1')
         .replace(/dlhd\.st|dlhd\.sx/, 'dlive.sx');
       this.openWebBtn.onclick = () => {
-        const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
-        if (win) {
-          win.opener = null;
-          win.location.href = cleanOfficialWeb;
-        }
+        window.open(cleanOfficialWeb, '_blank', 'noopener,noreferrer');
       };
     } else if (this.openWebBtn) {
       this.openWebBtn.style.display = 'none';
@@ -635,16 +631,6 @@ export class UniversalPlayer {
         <span>${this.escapeHtml(siteName)}</span>
       `;
 
-      chip.addEventListener('click', (e) => {
-        // Safe detached window to strip referrer header and prevent third-party blocking
-        e.preventDefault();
-        const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
-        if (win) {
-          win.opener = null;
-          win.location.href = cleanUrl;
-        }
-      });
-
       this.externalLinksChips.appendChild(chip);
     });
   }
@@ -734,18 +720,6 @@ export class UniversalPlayer {
         </a>
       </div>
     `;
-
-    const openBtn = promptEl.querySelector('.btn-open-external-stream');
-    if (openBtn) {
-      openBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const win = window.open('about:blank', '_blank', 'noopener,noreferrer');
-        if (win) {
-          win.opener = null;
-          win.location.href = cleanUrl;
-        }
-      });
-    }
   }
 
   hideExternalRedirectCard() {

@@ -13,12 +13,21 @@ export async function resolveStream(id, baseUrl) {
   }
 
   // Case 2: 24/7 Channel
-  // Format: ntv-{server}-{rawId}
-  const parts = id.split('-');
-  if (parts.length < 3) return streams;
+  // Format: ntv-{server}-{rawId} or {server}-{rawId}
+  let server = 'dlhd';
+  let rawId = id;
+  if (id.startsWith('ntv-')) {
+    const parts = id.split('-');
+    if (parts.length >= 3) {
+      server = parts[1];
+      rawId = parts.slice(2).join('-');
+    }
+  } else if (id.includes('-')) {
+    const parts = id.split('-');
+    server = parts[0];
+    rawId = parts.slice(1).join('-');
+  }
 
-  const server = parts[1];
-  const rawId = parts.slice(2).join('-');
 
   try {
     if (server === 'dlhd' || server === 'dlive') {
@@ -50,18 +59,22 @@ function decodeEConfig(str) {
   const chunksCount = 4;
   const s1 = Buffer.from(str, 'base64').toString('binary');
   const len = s1.length;
-  const chunkLen = Math.floor(len / chunksCount);
-  let res = '';
+  const chunkSize = Math.ceil(len / chunksCount);
+  const chunks = [];
+  let offset = 0;
   for (let i = 0; i < chunksCount; i++) {
-    const o = order[i];
-    res += s1.substring(o * chunkLen, (o + 1) * chunkLen);
+    chunks.push(s1.substr(offset, chunkSize));
+    offset += chunkSize;
   }
-  const key = 0x5a;
-  let decoded = '';
-  for (let i = 0; i < res.length; i++) {
-    decoded += String.fromCharCode(res.charCodeAt(i) ^ key);
+  const reordered = [];
+  for (let i = 0; i < order.length; i++) {
+    let chunk = String(chunks[i]);
+    chunk = chunk.slice(0, 3) + chunk.slice(4);
+    reordered[order[i]] = Buffer.from(chunk, 'base64').toString('binary');
   }
-  return JSON.parse(decoded);
+  const joined = reordered.join('');
+  const finalStr = Buffer.from(joined, 'base64').toString('utf-8');
+  return JSON.parse(finalStr);
 }
 
 /**
@@ -81,6 +94,7 @@ export async function fetchDliveRealStream(channelId) {
   try {
     const streamPhpUrl = `${dliveBase}/stream/stream-${cleanId}.php`;
     const res1 = await fetch(streamPhpUrl, {
+      signal: AbortSignal.timeout(4000),
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': `${dliveBase}/watch.php?id=${cleanId}`
@@ -94,6 +108,7 @@ export async function fetchDliveRealStream(channelId) {
     const tiestepUrl = iframeMatch[1];
 
     const res2 = await fetch(tiestepUrl, {
+      signal: AbortSignal.timeout(4000),
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': streamPhpUrl
@@ -111,7 +126,7 @@ export async function fetchDliveRealStream(channelId) {
 
     const data = {
       streamUrl,
-      referer: tiestepUrl
+      referer: 'https://tiestep.top/'
     };
 
     dliveStreamCache.set(cleanId, { data, time: Date.now() });
