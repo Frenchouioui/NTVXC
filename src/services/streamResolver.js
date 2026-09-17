@@ -112,6 +112,15 @@ export async function resolveCdnLive(channelRawId, baseUrl) {
   }
 
   const playerUrl = `https://cdnlivetv.tv/api/v1/channels/player/?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code.toLowerCase())}&user=ntvstream&plan=free`;
+  return resolveCdnLiveFromUrl(playerUrl, 'CDNLive Stream', baseUrl);
+}
+
+/**
+ * Direct extractor from cdnlivetv.tv player URL
+ */
+export async function resolveCdnLiveFromUrl(playerUrl, label = 'CDNLive Stream', baseUrl) {
+  const streams = [];
+  if (!playerUrl) return streams;
 
   try {
     const res = await fetch(playerUrl, {
@@ -130,14 +139,14 @@ export async function resolveCdnLive(channelRawId, baseUrl) {
       const url = m3u8Match[0];
       streams.push({
         name: 'NTVio • TITAN',
-        title: '⚡ CDNLive Stream (HD)',
+        title: `⚡ ${label} [HD]`,
         url,
         behaviorHints: { notWebReady: false }
       });
       if (baseUrl) {
         streams.push({
           name: 'NTVio • TITAN (Proxy)',
-          title: '🛡️ Flux CDNLive Sécurisé',
+          title: `🛡️ ${label} [Proxy Anti-Bug]`,
           url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(url)}&ref=${encodeURIComponent('https://cdnlivetv.tv/')}`,
           behaviorHints: { notWebReady: false }
         });
@@ -172,14 +181,14 @@ export async function resolveCdnLive(channelRawId, baseUrl) {
         if (assembledUrl.includes('playlist.m3u8')) {
           streams.push({
             name: 'NTVio • TITAN',
-            title: '⚡ CDNLive Stream (HD)',
+            title: `⚡ ${label} [HD]`,
             url: assembledUrl,
             behaviorHints: { notWebReady: false }
           });
           if (baseUrl) {
             streams.push({
               name: 'NTVio • TITAN (Proxy)',
-              title: '🛡️ Flux CDNLive Sécurisé',
+              title: `🛡️ ${label} [Proxy Anti-Bug]`,
               url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(assembledUrl)}&ref=${encodeURIComponent('https://cdnlivetv.tv/')}`,
               behaviorHints: { notWebReady: false }
             });
@@ -325,8 +334,18 @@ export async function resolveMatchStream(matchId, baseUrl) {
       continue;
     }
 
+    // 2.5 Titan / CDNLive player URLs (Direct HLS & Proxy instead of broken embeds)
+    if (src.server === 'titan' || (sourceUrl && sourceUrl.includes('cdnlivetv.tv'))) {
+      const cdnStreams = await resolveCdnLiveFromUrl(sourceUrl, `Source ${sourceIndex}: ${label}`, baseUrl);
+      if (cdnStreams.length > 0) {
+        streams.push(...cdnStreams);
+        continue;
+      }
+    }
+
     // 3. Kobra & Raptor embed providers (e.g. admin, echo, delta, embedindia)
-    if (src.source && src.id) {
+    const validEmbedProviders = ['echo', 'admin', 'delta', 'embedindia', 'kobra'];
+    if (src.source && src.id && validEmbedProviders.includes(String(src.source).toLowerCase())) {
       const embedUrl = `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/1`;
       const serverLower = (src.server || match.server || 'kobra').toLowerCase();
       const ntvOfficialUrl = `https://ntv.cx/watch/${serverLower}/${match.rawId || match.id}?source=${i}`;
