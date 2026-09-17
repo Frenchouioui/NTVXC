@@ -153,6 +153,7 @@ export class UniversalPlayer {
     this.pipBtn = document.getElementById('pipBtn');
     this.vlcBtn = document.getElementById('vlcBtn');
     this.fullscreenBtn = document.getElementById('fullscreenBtn');
+    this.fullscreenIcon = document.getElementById('fullscreenIcon');
     this.playerTitle = document.getElementById('playerTitle');
     this.playerCategory = document.getElementById('playerCategory');
     this.playerSubtitle = document.getElementById('playerSubtitle');
@@ -328,20 +329,33 @@ export class UniversalPlayer {
 
     // Theater Mode Toggle
     if (this.theaterBtn) {
-      this.theaterBtn.addEventListener('click', () => {
-        const wrapper = document.getElementById('playerWrapper');
-        const section = document.getElementById('playerSection');
-        const isTheater = wrapper?.classList.toggle('theater-mode');
-        section?.classList.toggle('section-theater', isTheater);
-        const theaterText = document.getElementById('theaterText');
-        const theaterIcon = document.getElementById('theaterIcon');
-        if (theaterText) theaterText.textContent = isTheater ? 'Quitter Théâtre' : 'Mode Théâtre';
-        if (theaterIcon) theaterIcon.className = isTheater ? 'ph-bold ph-corners-in' : 'ph-bold ph-frame-corners';
-        if (isTheater && section) {
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
+      this.theaterBtn.addEventListener('click', () => this.toggleTheater());
     }
+
+    // YouTube-like Global Keyboard Shortcuts (F, T, M, Space/K, P)
+    window.addEventListener('keydown', (e) => {
+      const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+      if (!this.container || this.container.style.display === 'none') return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'f') {
+        e.preventDefault();
+        this.toggleFullscreen();
+      } else if (key === 't') {
+        e.preventDefault();
+        this.toggleTheater();
+      } else if (key === 'm') {
+        e.preventDefault();
+        this.toggleMute();
+      } else if (key === ' ' || key === 'k') {
+        e.preventDefault();
+        this.togglePlay();
+      } else if (key === 'p') {
+        e.preventDefault();
+        if (this.pipBtn) this.pipBtn.click();
+      }
+    });
   }
 
   /**
@@ -922,14 +936,16 @@ export class UniversalPlayer {
 
     if (!isFullscreen) {
       if (videoContainer.requestFullscreen) {
-        videoContainer.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
+        videoContainer.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
+          videoContainer.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
+        });
       } else if (videoContainer.webkitRequestFullscreen) {
         videoContainer.webkitRequestFullscreen();
       } else if (videoContainer.mozRequestFullScreen) {
         videoContainer.mozRequestFullScreen();
       } else if (videoContainer.msRequestFullscreen) {
         videoContainer.msRequestFullscreen();
-      } else if (this.videoEl.webkitEnterFullscreen) {
+      } else if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
         this.videoEl.webkitEnterFullscreen();
       }
     } else {
@@ -942,6 +958,20 @@ export class UniversalPlayer {
       } else if (document.msExitFullscreen) {
         document.msExitFullscreen();
       }
+    }
+  }
+
+  toggleTheater() {
+    const wrapper = document.getElementById('playerWrapper');
+    const section = document.getElementById('playerSection');
+    const isTheater = wrapper?.classList.toggle('theater-mode');
+    section?.classList.toggle('section-theater', isTheater);
+    const theaterText = document.getElementById('theaterText');
+    const theaterIcon = document.getElementById('theaterIcon');
+    if (theaterText) theaterText.textContent = isTheater ? 'Quitter Théâtre' : 'Mode Théâtre';
+    if (theaterIcon) theaterIcon.className = isTheater ? 'ph-bold ph-corners-in' : 'ph-bold ph-frame-corners';
+    if (isTheater && section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 
