@@ -304,7 +304,7 @@ export class UniversalPlayer {
     if (!this.playerFavBtn) return;
     this.playerFavBtn.classList.toggle('active', isFav);
     if (this.playerFavIcon) {
-      this.playerFavIcon.className = `ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}`;
+      this.playerFavIcon.className = `${isFav ? 'ph-fill' : 'ph-bold'} ph-heart`;
     }
     if (this.playerFavText) {
       this.playerFavText.textContent = isFav ? 'Favori ❤️' : 'Favori';

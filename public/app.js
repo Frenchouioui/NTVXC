@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="match-header-right">
             ${timeDisplay}
             <button type="button" class="btn-fav ${isFav ? 'active' : ''}" data-id="${m.id}" data-type="match" title="Ajouter aux favoris">
-              <i class="ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}"></i>
+              <i class="${isFav ? 'ph-fill' : 'ph-bold'} ph-heart"></i>
             </button>
           </div>
         </div>
@@ -545,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <i class="ph-bold ph-play play-circle-icon"></i>
           </div>
           <button type="button" class="btn-fav-channel ${isFav ? 'active' : ''}" data-id="${c.id}" title="Ajouter aux favoris">
-            <i class="ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}"></i>
+            <i class="${isFav ? 'ph-fill' : 'ph-bold'} ph-heart"></i>
           </button>
         </div>
         <div class="channel-info">
@@ -648,10 +648,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFavoritesBadge();
 
     // Re-sync icon styles on all match cards & channel cards
-    document.querySelectorAll(`[data-id="${item.id}"] .btn-fav, [data-id="${item.id}"] .btn-fav-channel`).forEach(btn => {
+    document.querySelectorAll(`[data-id="${item.id}"] .btn-fav, [data-id="${item.id}"] .btn-fav-channel, .btn-fav[data-id="${item.id}"], .btn-fav-channel[data-id="${item.id}"]`).forEach(btn => {
       btn.classList.toggle('active', isNowFav);
       const icon = btn.querySelector('i');
-      if (icon) icon.className = `ph-bold ${isNowFav ? 'ph-heart-fill' : 'ph-heart'}`;
+      if (icon) icon.className = `${isNowFav ? 'ph-fill' : 'ph-bold'} ph-heart`;
     });
 
     // Re-sync in-player favorite button if this item is currently loaded
