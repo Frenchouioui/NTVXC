@@ -1,4 +1,4 @@
-import { UniversalPlayer } from './player.js?v=2.6';
+import { UniversalPlayer } from './player.js?v=2.7';
 
 document.addEventListener('DOMContentLoaded', () => {
   // App State
@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const player = new UniversalPlayer(playerContainer, (stream, idx) => {
     showToast(`Diffusion : ${stream.title || stream.name}`);
   });
+  player.onToggleFavorite = (item) => {
+    toggleFavorite(item);
+  };
 
   // Startup
   init();
@@ -358,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="match-header-right">
             ${timeDisplay}
             <button type="button" class="btn-fav ${isFav ? 'active' : ''}" data-id="${m.id}" data-type="match" title="Ajouter aux favoris">
-              <i class="ph-bold ${isFav ? 'ph-star-fill' : 'ph-star'}"></i>
+              <i class="ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}"></i>
             </button>
           </div>
         </div>
@@ -538,12 +541,12 @@ document.addEventListener('DOMContentLoaded', () => {
       card.innerHTML = `
         <div class="channel-poster-wrap">
           <img src="${c.poster}" alt="${escapeHtml(c.name)}" loading="lazy" class="channel-poster-img">
-          <button type="button" class="btn-fav-channel ${isFav ? 'active' : ''}" data-id="${c.id}" title="Favori">
-            <i class="ph-bold ${isFav ? 'ph-star-fill' : 'ph-star'}"></i>
-          </button>
           <div class="channel-play-overlay">
-            <i class="ph-bold ph-play"></i>
+            <i class="ph-bold ph-play play-circle-icon"></i>
           </div>
+          <button type="button" class="btn-fav-channel ${isFav ? 'active' : ''}" data-id="${c.id}" title="Ajouter aux favoris">
+            <i class="ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}"></i>
+          </button>
         </div>
         <div class="channel-info">
           <h4 class="channel-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</h4>
@@ -559,10 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectItem(c.id);
       });
 
-      card.querySelector('.btn-fav-channel').addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFavorite(c);
-      });
+      const favBtn = card.querySelector('.btn-fav-channel');
+      if (favBtn) {
+        favBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFavorite(c);
+        });
+      }
 
       fragment.appendChild(card);
     });
@@ -598,11 +605,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       await player.loadItem(data.item, data.streams || []);
 
+      // Sync player favorite button state
+      const isFav = state.favorites.some(f => f.id === id);
+      player.setFavoriteState(isFav);
+
       // Connect close button
       const closePlayerBtn = document.getElementById('closePlayerBtn');
       if (closePlayerBtn) {
         closePlayerBtn.onclick = () => {
           player.destroyHls();
+          player.resetTheaterMode();
           if (playerSection) playerSection.style.display = 'none';
           state.activeItemId = null;
           document.querySelectorAll('.match-card, .channel-card').forEach(card => {
@@ -620,24 +632,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 7. FAVORITES SYSTEM ---
   function toggleFavorite(item) {
     const idx = state.favorites.findIndex(f => f.id === item.id);
+    const itemName = item.title || item.name || 'Élément';
+    let isNowFav = false;
+
     if (idx >= 0) {
       state.favorites.splice(idx, 1);
-      showToast(`Retiré des favoris : ${item.title || item.name}`);
+      showToast(`Retiré des favoris : ${itemName}`);
     } else {
       state.favorites.push(item);
-      showToast(`Ajouté aux favoris ⭐ : ${item.title || item.name}`);
+      isNowFav = true;
+      showToast(`Ajouté aux favoris ❤️ : ${itemName}`);
     }
 
     localStorage.setItem('ntvio_favorites', JSON.stringify(state.favorites));
     updateFavoritesBadge();
 
-    // Re-sync icon styles
+    // Re-sync icon styles on all match cards & channel cards
     document.querySelectorAll(`[data-id="${item.id}"] .btn-fav, [data-id="${item.id}"] .btn-fav-channel`).forEach(btn => {
-      const isFav = state.favorites.some(f => f.id === item.id);
-      btn.classList.toggle('active', isFav);
+      btn.classList.toggle('active', isNowFav);
       const icon = btn.querySelector('i');
-      if (icon) icon.className = `ph-bold ${isFav ? 'ph-star-fill' : 'ph-star'}`;
+      if (icon) icon.className = `ph-bold ${isNowFav ? 'ph-heart-fill' : 'ph-heart'}`;
     });
+
+    // Re-sync in-player favorite button if this item is currently loaded
+    if (player && player.currentItem && (player.currentItem.id === item.id || state.activeItemId === item.id)) {
+      player.setFavoriteState(isNowFav);
+    }
 
     if (state.currentTab === 'favorites') {
       renderFavorites();
@@ -661,9 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.favorites.length) {
       favoritesGrid.innerHTML = `
         <div class="empty-state-box">
-          <i class="ph-bold ph-star empty-icon"></i>
+          <i class="ph-bold ph-heart empty-icon" style="color: #f43f5e;"></i>
           <h3>Aucun favori pour le moment</h3>
-          <p>Cliquez sur l'étoile d'un match ou d'une chaîne pour l'épingler ici et y accéder instantanément !</p>
+          <p>Cliquez sur le cœur d'un match ou d'une chaîne pour l'épingler ici et y accéder instantanément !</p>
         </div>
       `;
       return;

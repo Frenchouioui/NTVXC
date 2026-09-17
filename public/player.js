@@ -88,6 +88,10 @@ export class UniversalPlayer {
           </div>
 
           <div class="meta-actions">
+            <button type="button" class="btn-icon" id="playerFavBtn" title="Ajouter / Retirer des favoris">
+              <i class="ph-bold ph-heart" id="playerFavIcon"></i>
+              <span id="playerFavText">Favori</span>
+            </button>
             <button type="button" class="btn-icon" id="openWebBtn" title="Ouvrir la diffusion sur le site officiel (nouvel onglet)" style="display: none;">
               <i class="ph-bold ph-arrow-square-out"></i>
               <span>Site Officiel ↗</span>
@@ -164,6 +168,9 @@ export class UniversalPlayer {
     this.nextSourceBtn = document.getElementById('nextSourceBtn');
     this.copyStreamUrlBtn = document.getElementById('copyStreamUrlBtn');
     this.openWebBtn = document.getElementById('openWebBtn');
+    this.playerFavBtn = document.getElementById('playerFavBtn');
+    this.playerFavIcon = document.getElementById('playerFavIcon');
+    this.playerFavText = document.getElementById('playerFavText');
     this.theaterBtn = document.getElementById('theaterBtn');
     this.closePlayerBtn = document.getElementById('closePlayerBtn');
   }
@@ -263,6 +270,15 @@ export class UniversalPlayer {
       }
     });
 
+    // Player Favorite Button Toggle
+    if (this.playerFavBtn) {
+      this.playerFavBtn.addEventListener('click', () => {
+        if (this.onToggleFavorite && this.currentItem) {
+          this.onToggleFavorite(this.currentItem);
+        }
+      });
+    }
+
     // Theater Mode Toggle
     if (this.theaterBtn) {
       this.theaterBtn.addEventListener('click', () => {
@@ -274,14 +290,46 @@ export class UniversalPlayer {
         const theaterIcon = document.getElementById('theaterIcon');
         if (theaterText) theaterText.textContent = isTheater ? 'Quitter Théâtre' : 'Mode Théâtre';
         if (theaterIcon) theaterIcon.className = isTheater ? 'ph-bold ph-corners-in' : 'ph-bold ph-frame-corners';
+        if (isTheater && section) {
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       });
     }
+  }
+
+  /**
+   * Set player favorite button state
+   */
+  setFavoriteState(isFav) {
+    if (!this.playerFavBtn) return;
+    this.playerFavBtn.classList.toggle('active', isFav);
+    if (this.playerFavIcon) {
+      this.playerFavIcon.className = `ph-bold ${isFav ? 'ph-heart-fill' : 'ph-heart'}`;
+    }
+    if (this.playerFavText) {
+      this.playerFavText.textContent = isFav ? 'Favori ❤️' : 'Favori';
+    }
+  }
+
+  /**
+   * Reset theater mode when closing player
+   */
+  resetTheaterMode() {
+    const wrapper = document.getElementById('playerWrapper');
+    const section = document.getElementById('playerSection');
+    wrapper?.classList.remove('theater-mode');
+    section?.classList.remove('section-theater');
+    const theaterText = document.getElementById('theaterText');
+    const theaterIcon = document.getElementById('theaterIcon');
+    if (theaterText) theaterText.textContent = 'Mode Théâtre';
+    if (theaterIcon) theaterIcon.className = 'ph-bold ph-frame-corners';
   }
 
   /**
    * Load an entire Match or Channel item into the player
    */
   async loadItem(item, streams = []) {
+    this.currentItem = item;
     if (item.teams && item.teams.home && item.teams.away) {
       const hBadge = item.teams.home.badge ? `<img src="${item.teams.home.badge}" class="player-team-mini-badge" alt="">` : '';
       const aBadge = item.teams.away.badge ? `<img src="${item.teams.away.badge}" class="player-team-mini-badge" alt="">` : '';

@@ -16,7 +16,7 @@
   <!-- HLS.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
   <!-- CSS -->
-  <link rel="stylesheet" href="/style.css?v=2.3">
+  <link rel="stylesheet" href="/style.css?v=2.7">
 </head>
 <body class="app-body">
   <div class="app-backdrop"></div>
@@ -49,9 +49,9 @@
             <span class="tab-badge pill-purple" id="tvCountBadge">3 400+</span>
           </button>
           <button type="button" class="nav-tab" data-tab="favorites">
-            <i class="ph-bold ph-star"></i>
+            <i class="ph-bold ph-heart"></i>
             <span>Favoris</span>
-            <span class="tab-badge pill-gold" id="favCountBadge" style="display:none;">0</span>
+            <span class="tab-badge pill-rose" id="favCountBadge" style="display:none;">0</span>
           </button>
         </nav>
       </div>
@@ -60,7 +60,7 @@
       <div class="header-search">
         <div class="search-bar-wrap">
           <i class="ph ph-magnifying-glass search-icon"></i>
-          <input type="text" id="globalSearchInput" placeholder="Rechercher un match, une équipe ou une chaîne (ex: Real, Canal+, F1...)" autocomplete="off">
+          <input type="text" id="globalSearchInput" placeholder="Rechercher un match, une équipe ou une chaîne..." autocomplete="off">
           <button type="button" class="search-clear-btn" id="searchClearBtn" style="display: none;"><i class="ph-bold ph-x"></i></button>
           <span class="search-kbd-hint">/</span>
         </div>
@@ -255,9 +255,9 @@
 
         <div class="favorites-grid" id="favoritesGrid">
           <div class="empty-state-box">
-            <i class="ph-bold ph-star empty-icon"></i>
+            <i class="ph-bold ph-heart empty-icon" style="color: #f43f5e;"></i>
             <h3>Aucun favori pour le moment</h3>
-            <p>Cliquez sur l'étoile ou le cœur d'une chaîne ou d'un match pour l'épingler ici et y accéder en 1 clic !</p>
+            <p>Cliquez sur le cœur d'une chaîne ou d'un match pour l'épingler ici et y accéder en 1 clic !</p>
           </div>
         </div>
       </section>
@@ -271,6 +271,6 @@
   </div>
 
   <!-- App Controller -->
-  <script type="module" src="/app.js?v=2.6"></script>
+  <script type="module" src="/app.js?v=2.7"></script>
 </body>
 </html>
