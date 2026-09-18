@@ -218,15 +218,120 @@ body {
   letter-spacing: -0.011em;
 }
 
-/* Backdrop Atmosphere (Refined subtle gradient mesh) */
+/* Backdrop Atmosphere (Refined Apple VisionOS ambient gradient mesh) */
 .app-backdrop {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 100% 40%, rgba(56, 189, 248, 0.04), transparent 60%);
+    radial-gradient(ellipse 70% 45% at 20% -10%, rgba(99, 102, 241, 0.12), transparent 60%),
+    radial-gradient(ellipse 65% 45% at 85% 15%, rgba(56, 189, 248, 0.08), transparent 60%),
+    radial-gradient(ellipse 75% 55% at 50% 110%, rgba(139, 92, 246, 0.09), transparent 70%);
+}
+
+/* ==========================================================================
+   LiquidGlass Interactive Showcase Stage (Apple VisionOS / 2026 Standards)
+   ========================================================================== */
+
+.liquid-glass-stage {
+  max-width: 1760px;
+  margin: 1.25rem auto 0.5rem auto;
+  padding: 0 1.5rem;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.stage-mesh-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.14), transparent 65%);
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.liquid-glass-banner {
+  width: 100%;
+  background: rgba(18, 22, 34, 0.6);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 36px rgba(0, 0, 0, 0.5);
+  padding: 1rem 1.75rem;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.liquid-glass-banner:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 
+    inset 0 1px 2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 16px 44px rgba(0, 0, 0, 0.6);
+}
+
+.glass-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.glass-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+}
+
+.glass-banner-stats {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.glass-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.glass-stat-num {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.glass-stat-lbl {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.glass-stat-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ==========================================================================
@@ -1349,7 +1454,27 @@ body.in-fullscreen .video-container .player-controls,
 }
 
 .broadcaster-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.broadcaster-code-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+.broadcaster-icon {
   font-size: 0.95rem;
+  color: var(--text-secondary);
 }
 
 .broadcaster-name {

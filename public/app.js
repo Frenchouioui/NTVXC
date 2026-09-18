@@ -1,4 +1,5 @@
 import { UniversalPlayer } from './player.js?v=3.2';
+import { LiquidGlass } from './liquidglass.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // App State
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFilters();
     setupSearch();
     setupShortcuts();
+    setupLiquidGlass();
 
     await loadStats();
     await loadCountries();
@@ -92,6 +94,29 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadChannels(true);
     updateFavoritesBadge();
     // Do NOT auto-open the player on startup - wait for user to click on an event or channel
+  }
+
+  async function setupLiquidGlass() {
+    try {
+      const stage = document.getElementById('liquidGlassStage');
+      const heroBanner = document.getElementById('liquidGlassHero');
+      if (stage && heroBanner) {
+        await LiquidGlass.init({
+          root: stage,
+          glassElements: [heroBanner],
+          defaults: {
+            cornerRadius: 20,
+            refraction: 0.7,
+            blurAmount: 0.2,
+            specular: 0.35,
+            edgeHighlight: 0.12,
+            chromAberration: 0.05
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('LiquidGlass WebGL shader fallback active:', err);
+    }
   }
 
   // --- 1. NAVIGATION & TABS ---
@@ -668,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       state.favorites.push(item);
       isNowFav = true;
-      showToast(`Ajouté aux favoris ❤️ : ${itemName}`);
+      showToast(`Ajouté aux favoris : ${itemName}`);
     }
 
     localStorage.setItem('ntvio_favorites', JSON.stringify(state.favorites));
@@ -730,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </div>
           <div class="fav-card-info">
-            <span class="fav-tag">${isMatch ? '⚽ MATCH' : '📺 TV 24/7'}</span>
+            <span class="fav-tag">${isMatch ? '<i class="ph-bold ph-soccer-ball"></i> MATCH' : '<i class="ph-bold ph-television"></i> TV 24/7'}</span>
             <h4 class="fav-title" title="${escapeHtml(title)}">${escapeHtml(title)}</h4>
             <span class="fav-sub">${escapeHtml(subtitle)}</span>
           </div>
@@ -923,7 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="search-dropdown-section">
             <div class="search-dropdown-header">
               <span><i class="ph-bold ph-television"></i> Chaînes TV (${totalChannels})</span>
-              <button type="button" class="search-footer-btn" id="btnSeeAllChannels">Tout afficher ➔</button>
+              <button type="button" class="search-footer-btn" id="btnSeeAllChannels">Tout afficher <i class="ph-bold ph-arrow-right"></i></button>
             </div>
             ${channels.map(c => `
               <div class="search-result-item" data-id="${c.id}" data-type="channel">
@@ -949,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="search-dropdown-section">
             <div class="search-dropdown-header">
               <span><i class="ph-bold ph-soccer-ball"></i> Matchs & Événements (${totalMatches})</span>
-              <button type="button" class="search-footer-btn" id="btnSeeAllMatches">Tout afficher ➔</button>
+              <button type="button" class="search-footer-btn" id="btnSeeAllMatches">Tout afficher <i class="ph-bold ph-arrow-right"></i></button>
             </div>
             ${matches.map(m => `
               <div class="search-result-item" data-id="${m.id}" data-type="match">
@@ -960,7 +985,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <div class="search-result-title">${escapeHtml(m.title)}</div>
                   <div class="search-result-meta">
                     <span class="match-category-pill">${escapeHtml(m.category || 'Sports')}</span>
-                    ${m.live ? '<span class="search-badge-live">● EN DIRECT</span>' : `<span>${new Date(m.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>`}
+                    ${m.live ? '<span class="search-badge-live"><span class="live-dot-mini"></span> EN DIRECT</span>' : `<span>${new Date(m.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>`}
                     <span>${m.sources ? m.sources.length : 1} diffuseur(s)</span>
                   </div>
                 </div>

@@ -94,7 +94,7 @@ export class UniversalPlayer {
             </button>
             <button type="button" class="btn-icon" id="openWebBtn" title="Ouvrir la diffusion sur le site officiel (nouvel onglet)" style="display: none;">
               <i class="ph-bold ph-arrow-square-out"></i>
-              <span>Site Officiel ↗</span>
+              <span>Site Officiel</span>
             </button>
             <button type="button" class="btn-icon" id="copyStreamUrlBtn" title="Copier le lien M3U8 direct">
               <i class="ph-bold ph-link"></i>
@@ -106,7 +106,7 @@ export class UniversalPlayer {
             </button>
             <button type="button" class="btn-icon btn-close-player" id="closePlayerBtn" title="Fermer le lecteur vidéo">
               <i class="ph-bold ph-x"></i>
-              <span>Fermer ✕</span>
+              <span>Fermer</span>
             </button>
           </div>
         </div>
@@ -349,7 +349,7 @@ export class UniversalPlayer {
       this.playerFavIcon.className = `${isFav ? 'ph-fill' : 'ph-bold'} ph-heart`;
     }
     if (this.playerFavText) {
-      this.playerFavText.textContent = isFav ? 'Favori ❤️' : 'Favori';
+      this.playerFavText.textContent = 'Favori';
     }
   }
 
@@ -513,19 +513,19 @@ export class UniversalPlayer {
       bChip.className = `broadcaster-tab ${isGrpActive ? 'active' : ''}`;
       bChip.setAttribute('data-group-idx', gIdx);
 
-      // Country Flag or icon
-      let flag = '📺';
+      // Country code badge or icon
+      let badgeHtml = '<i class="ph-bold ph-television broadcaster-icon"></i>';
       const nUpper = grp.name.toUpperCase();
-      if (nUpper.includes('FRANCE') || nUpper.includes('CANAL') || nUpper.includes('RMC') || nUpper.includes('BEIN') || nUpper.includes('TF1') || nUpper.includes('M6')) flag = '🇫🇷';
-      else if (nUpper.includes('UK') || nUpper.includes('TNT') || nUpper.includes('SKY') || nUpper.includes('BBC')) flag = '🇬🇧';
-      else if (nUpper.includes('SPAIN') || nUpper.includes('MOVISTAR')) flag = '🇪🇸';
-      else if (nUpper.includes('PORTUGAL') || nUpper.includes('SPORT TV')) flag = '🇵🇹';
-      else if (nUpper.includes('USA') || nUpper.includes('ESPN') || nUpper.includes('FOX') || nUpper.includes('NBC')) flag = '🇺🇸';
-      else if (nUpper.includes('GERMANY')) flag = '🇩🇪';
-      else if (nUpper.includes('ITALY')) flag = '🇮🇹';
+      if (nUpper.includes('FRANCE') || nUpper.includes('CANAL') || nUpper.includes('RMC') || nUpper.includes('BEIN') || nUpper.includes('TF1') || nUpper.includes('M6')) badgeHtml = '<span class="broadcaster-code-tag">FR</span>';
+      else if (nUpper.includes('UK') || nUpper.includes('TNT') || nUpper.includes('SKY') || nUpper.includes('BBC')) badgeHtml = '<span class="broadcaster-code-tag">UK</span>';
+      else if (nUpper.includes('SPAIN') || nUpper.includes('MOVISTAR')) badgeHtml = '<span class="broadcaster-code-tag">ES</span>';
+      else if (nUpper.includes('PORTUGAL') || nUpper.includes('SPORT TV')) badgeHtml = '<span class="broadcaster-code-tag">PT</span>';
+      else if (nUpper.includes('USA') || nUpper.includes('ESPN') || nUpper.includes('FOX') || nUpper.includes('NBC')) badgeHtml = '<span class="broadcaster-code-tag">US</span>';
+      else if (nUpper.includes('GERMANY')) badgeHtml = '<span class="broadcaster-code-tag">DE</span>';
+      else if (nUpper.includes('ITALY')) badgeHtml = '<span class="broadcaster-code-tag">IT</span>';
 
       bChip.innerHTML = `
-        <span class="broadcaster-flag">${flag}</span>
+        <span class="broadcaster-flag">${badgeHtml}</span>
         <span class="broadcaster-name">${this.escapeHtml(grp.name)}</span>
         ${isGrpActive ? '<span class="live-dot-mini" style="margin-left:auto;"></span>' : ''}
       `;

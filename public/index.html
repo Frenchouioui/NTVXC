@@ -42,7 +42,7 @@
           <button type="button" class="nav-tab active" data-tab="sports">
             <i class="ph-bold ph-soccer-ball"></i>
             <span>Matchs en Direct</span>
-            <span class="tab-badge" id="liveMatchBadge">● LIVE</span>
+            <span class="tab-badge" id="liveMatchBadge"><span class="live-dot-mini"></span> LIVE</span>
           </button>
           <button type="button" class="nav-tab" data-tab="tv">
             <i class="ph-bold ph-television"></i>
@@ -99,6 +99,40 @@
     </div>
   </div>
 
+  <!-- Apple VisionOS / LiquidGlass Interactive Showcase Bar -->
+  <div class="liquid-glass-stage" id="liquidGlassStage">
+    <div class="stage-mesh-bg"></div>
+    <div class="liquid-glass-banner" id="liquidGlassHero" data-config='{"blurAmount":0.22,"refraction":0.72,"specular":0.4,"edgeHighlight":0.15,"cornerRadius":20}'>
+      <div class="glass-banner-content">
+        <div class="glass-banner-badge">
+          <span class="live-dot-mini"></span>
+          <span>NTVIO STREAM ENGINE 2026</span>
+        </div>
+        <div class="glass-banner-stats">
+          <div class="glass-stat-item">
+            <span class="glass-stat-num" id="heroLiveMatches">430+</span>
+            <span class="glass-stat-lbl">Matchs Directs</span>
+          </div>
+          <div class="glass-stat-sep"></div>
+          <div class="glass-stat-item">
+            <span class="glass-stat-num">3 400+</span>
+            <span class="glass-stat-lbl">Chaînes 24/7</span>
+          </div>
+          <div class="glass-stat-sep"></div>
+          <div class="glass-stat-item">
+            <span class="glass-stat-num">6 Serveurs</span>
+            <span class="glass-stat-lbl">Auto-Failover</span>
+          </div>
+          <div class="glass-stat-sep"></div>
+          <div class="glass-stat-item">
+            <span class="glass-stat-num">&lt; 180ms</span>
+            <span class="glass-stat-lbl">Latence Optimale</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <main class="app-layout">
     <!-- Active Video Player Container -->
     <section class="player-section" id="playerSection">
@@ -117,31 +151,31 @@
           <span class="server-bar-label"><i class="ph-bold ph-hard-drives"></i> Serveurs :</span>
           <div class="server-pills-scroll" id="matchServerPills">
             <button type="button" class="match-server-pill active" data-server="">
-              <span>⚡ Tous les serveurs</span>
+              <span><i class="ph-bold ph-stack"></i> Tous les serveurs</span>
               <span class="badge-pill-count" id="countAllServers">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="falcon">
-              <span>🦅 Falcon</span>
+              <span><i class="ph-bold ph-bird"></i> Falcon</span>
               <span class="badge-pill-count pill-live" id="countFalcon">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="phoenix">
-              <span>🔥 Phoenix</span>
+              <span><i class="ph-bold ph-fire"></i> Phoenix</span>
               <span class="badge-pill-count" id="countPhoenix">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="dlive">
-              <span>📺 DLive</span>
+              <span><i class="ph-bold ph-television"></i> DLive</span>
               <span class="badge-pill-count" id="countDlive">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="kobra">
-              <span>🐍 Kobra</span>
+              <span><i class="ph-bold ph-shield"></i> Kobra</span>
               <span class="badge-pill-count" id="countKobra">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="raptor">
-              <span>🦖 Raptor</span>
+              <span><i class="ph-bold ph-lightning"></i> Raptor</span>
               <span class="badge-pill-count" id="countRaptor">...</span>
             </button>
             <button type="button" class="match-server-pill" data-server="titan">
-              <span>⚡ Titan</span>
+              <span><i class="ph-bold ph-cpu"></i> Titan</span>
               <span class="badge-pill-count" id="countTitan">...</span>
             </button>
           </div>
@@ -154,25 +188,25 @@
               <span>Tous les sports</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Football">
-              <span>⚽ Football</span>
+              <span><i class="ph-bold ph-soccer-ball"></i> Football</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Basketball">
-              <span>🏀 Basketball</span>
+              <span><i class="ph-bold ph-basketball"></i> Basketball</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Tennis">
-              <span>🎾 Tennis</span>
+              <span><i class="ph-bold ph-tennis-ball"></i> Tennis</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Motorsports">
-              <span>🏎️ F1 & Auto</span>
+              <span><i class="ph-bold ph-car"></i> F1 & Auto</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Wrestling">
-              <span>🥊 Combat & WWE</span>
+              <span><i class="ph-bold ph-hand-fist"></i> Combat & WWE</span>
             </button>
             <button type="button" class="filter-chip" data-sport="Rugby">
-              <span>🏉 Rugby</span>
+              <span><i class="ph-bold ph-football"></i> Rugby</span>
             </button>
             <button type="button" class="filter-chip" data-sport="DLive Events">
-              <span>⚡ DLive Live</span>
+              <span><i class="ph-bold ph-broadcast"></i> DLive Live</span>
             </button>
           </div>
 
@@ -180,7 +214,7 @@
             <label class="toggle-live-only" id="toggleLiveOnlyLabel">
               <input type="checkbox" id="liveOnlyCheckbox">
               <span class="toggle-track"></span>
-              <span class="toggle-text">🔴 En direct uniquement</span>
+              <span class="toggle-text"><span class="live-dot-mini"></span> En direct uniquement</span>
             </label>
             <button type="button" class="btn-refresh" id="refreshMatchesBtn" title="Actualiser la liste">
               <i class="ph-bold ph-arrows-clockwise" id="refreshIcon"></i>
@@ -209,7 +243,7 @@
         <div class="tv-filter-bar">
           <div class="country-chips-scroll" id="countryChipsScroll">
             <button type="button" class="country-pill active" data-country="">
-              <span class="pill-flag">🌍</span>
+              <span class="pill-flag"><i class="ph-bold ph-globe"></i></span>
               <span class="pill-name">Toutes les chaînes</span>
             </button>
             <!-- Country chips injected here -->
