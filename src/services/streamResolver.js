@@ -90,18 +90,17 @@ export async function fetchDliveRealStream(channelId) {
     return cached.data;
   }
 
-  // Get active mirror and fallback mirrors
-  const dliveGroup = getAllMirrors().dlive;
+  // Get active mirror and fallback mirrors (only valid responsive mirrors)
   const mirrorsToTry = [
     getActiveMirror('dlive'),
-    ...(dliveGroup && Array.isArray(dliveGroup.mirrors) ? dliveGroup.mirrors : [])
+    'https://dlive.sx'
   ].filter((v, i, a) => v && a.indexOf(v) === i);
 
   for (const dliveBase of mirrorsToTry) {
     try {
       const streamPhpUrl = `${dliveBase}/stream/stream-${cleanId}.php`;
       const res1 = await fetch(streamPhpUrl, {
-        signal: AbortSignal.timeout(7000),
+        signal: AbortSignal.timeout(3500),
         headers: {
           'User-Agent': CONFIG.USER_AGENT,
           'Referer': `${dliveBase}/watch.php?id=${cleanId}`
@@ -472,21 +471,38 @@ export async function resolveMatchStream(matchId, baseUrl) {
       }
     }
 
-    // 3. Kobra & Raptor embed providers (e.g. admin, echo, delta, embedindia)
-    const validEmbedProviders = ['echo', 'admin', 'delta', 'embedindia', 'kobra'];
-    if (src.source && src.id && validEmbedProviders.includes(String(src.source).toLowerCase())) {
-      const embedUrl = `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/1`;
+    // 3. Kobra & Raptor embed providers (e.g. admin, hotel, echo, delta, embedindia, kobra, etc.)
+    if (src.source && src.id && !sourceUrl.includes('.m3u8')) {
       const serverLower = (src.server || match.server || 'kobra').toLowerCase();
       const ntvOfficialUrl = `https://ntv.cx/watch/${serverLower}/${match.rawId || match.id}?source=${i}`;
 
-      // In-app player stream (loads inside player iframe without external popup!)
-      sourceStreams.push({
-        name: `NTVio • [${serverName}]`,
-        title: `⚽ Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
-        url: embedUrl,
-        isEmbed: true,
-        behaviorHints: { notWebReady: false }
-      });
+      // Admin provider on Kobra has 2 sub-streams (#1 and #2)
+      if (String(src.source).toLowerCase() === 'admin') {
+        sourceStreams.push({
+          name: `NTVio • [${serverName}]`,
+          title: `⚽ Source ${sourceIndex}: ${label} #1 [Lecteur Intégré]`,
+          url: `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/1`,
+          isEmbed: true,
+          behaviorHints: { notWebReady: false }
+        });
+
+        sourceStreams.push({
+          name: `NTVio • [${serverName}]`,
+          title: `⚽ Source ${sourceIndex}: ${label} #2 [Lecteur Intégré]`,
+          url: `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/2`,
+          isEmbed: true,
+          behaviorHints: { notWebReady: false }
+        });
+      } else {
+        const embedUrl = `https://embed.st/embed/${encodeURIComponent(src.source)}/${encodeURIComponent(src.id)}/1`;
+        sourceStreams.push({
+          name: `NTVio • [${serverName}]`,
+          title: `⚽ Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
+          url: embedUrl,
+          isEmbed: true,
+          behaviorHints: { notWebReady: false }
+        });
+      }
 
       // Optional secondary external link
       sourceStreams.push({

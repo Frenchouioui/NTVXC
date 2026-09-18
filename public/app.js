@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const channelsCountText = document.getElementById('channelsCountText');
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toastMsg');
+  const playerSection = document.getElementById('playerSection');
 
   // Schedule DOM References
   const calendarDaysBar = document.getElementById('calendarDaysBar');
@@ -67,6 +68,54 @@ document.addEventListener('DOMContentLoaded', () => {
   const scheduleCountText = document.getElementById('scheduleCountText');
   const scheduleEventsGrid = document.getElementById('scheduleEventsGrid');
 
+  // URL Routing & Deep Linking
+  function syncUrl(push = true) {
+    try {
+      const url = new URL(window.location.href);
+
+      // Sync tab param
+      if (state.currentTab && state.currentTab !== 'sports') {
+        url.searchParams.set('tab', state.currentTab);
+      } else {
+        url.searchParams.delete('tab');
+      }
+
+      // Sync watch param
+      if (state.activeItemId) {
+        url.searchParams.set('watch', state.activeItemId);
+      } else {
+        url.searchParams.delete('watch');
+      }
+
+      const newQuery = url.searchParams.toString();
+      const newRelative = url.pathname + (newQuery ? `?${newQuery}` : '');
+      const currentRelative = window.location.pathname + window.location.search;
+
+      if (newRelative !== currentRelative) {
+        if (push) {
+          history.pushState({ tab: state.currentTab, watch: state.activeItemId }, '', newRelative);
+        } else {
+          history.replaceState({ tab: state.currentTab, watch: state.activeItemId }, '', newRelative);
+        }
+      }
+    } catch (e) {
+      console.warn('URL sync failed:', e);
+    }
+  }
+
+  function closePlayer(sync = true) {
+    if (player) {
+      player.destroyHls();
+      player.resetTheaterMode();
+    }
+    if (playerSection) playerSection.style.display = 'none';
+    state.activeItemId = null;
+    document.querySelectorAll('.match-card, .channel-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    if (sync) syncUrl(true);
+    showToast('Lecteur fermé');
+  }
 
   // Initialize Player
   const playerContainer = document.getElementById('universalPlayerContainer');
@@ -74,12 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Diffusion : ${stream.title || stream.name}`);
   }, () => {
     // Teardown callback when player is closed
-    if (playerSection) playerSection.style.display = 'none';
-    state.activeItemId = null;
-    document.querySelectorAll('.match-card, .channel-card').forEach(card => {
-      card.classList.remove('selected');
-    });
-    showToast('Lecteur fermé');
+    closePlayer(true);
   });
   player.onToggleFavorite = (item) => {
     toggleFavorite(item);
@@ -94,11 +138,25 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupShortcuts();
 
+    // Check URL parameters on startup (deep link or reload)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab');
+    const initialWatch = urlParams.get('watch');
+
+    if (initialTab && ['sports', 'tv', 'schedule', 'favorites'].includes(initialTab)) {
+      switchTab(initialTab, false);
+    }
+
     await loadStats();
     await loadCountries();
     await loadMatches();
     await loadChannels(true);
     updateFavoritesBadge();
+
+    // Auto-open requested stream from URL
+    if (initialWatch) {
+      selectItem(initialWatch, false);
+    }
 
     // Background Auto-Refresh every 90s for live matches (silent update)
     setInterval(() => {
@@ -116,12 +174,31 @@ document.addEventListener('DOMContentLoaded', () => {
     navTabs.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const target = tab.getAttribute('data-tab');
-        switchTab(target);
+        switchTab(target, true);
       });
+    });
+
+    // Browser History (Back / Forward) support
+    window.addEventListener('popstate', () => {
+      const params = new URLSearchParams(window.location.search);
+      const targetTab = params.get('tab') || 'sports';
+      const watchId = params.get('watch');
+
+      if (state.currentTab !== targetTab) {
+        switchTab(targetTab, false);
+      }
+
+      if (watchId) {
+        if (state.activeItemId !== watchId) {
+          selectItem(watchId, false);
+        }
+      } else if (state.activeItemId) {
+        closePlayer(false);
+      }
     });
   }
 
-  function switchTab(tabName) {
+  function switchTab(tabName, sync = true) {
     state.currentTab = tabName;
     navTabs.querySelectorAll('.nav-tab').forEach(t => {
       t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
@@ -137,6 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (tabName === 'favorites') {
       renderFavorites();
     }
+
+    if (sync) syncUrl(true);
   }
 
   // --- 2. GLOBAL STATS ---
@@ -658,10 +737,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 6. SELECT AND PLAY ITEM (MATCH OR CHANNEL) ---
-  const playerSection = document.getElementById('playerSection');
-
-  async function selectItem(id) {
+  async function selectItem(id, sync = true) {
     state.activeItemId = id;
+    if (sync) syncUrl(true);
 
     // Highlight active card
     document.querySelectorAll('.match-card, .channel-card').forEach(card => {
@@ -693,14 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const closePlayerBtn = document.getElementById('closePlayerBtn');
       if (closePlayerBtn) {
         closePlayerBtn.onclick = () => {
-          player.destroyHls();
-          player.resetTheaterMode();
-          if (playerSection) playerSection.style.display = 'none';
-          state.activeItemId = null;
-          document.querySelectorAll('.match-card, .channel-card').forEach(card => {
-            card.classList.remove('selected');
-          });
-          showToast('Lecteur fermé');
+          closePlayer(true);
         };
       }
     } catch (e) {

@@ -293,7 +293,7 @@ export async function getMatchesStats() {
  */
 export async function getMatchById(id) {
   const matches = await getMatches();
-  return matches.find(m => m.id === id) || null;
+  return matches.find(m => m.id === id || (m.allIds && m.allIds.includes(id))) || null;
 }
 
 /**
@@ -389,38 +389,131 @@ async function refreshMatches() {
     console.warn('[ntvApi] Failed to fetch LiveLive24 schedule:', e.message);
   }
 
-  // 3. Deduplicate events while MERGING ALL SOURCES & SERVERS
+  // 3. Deduplicate events while MERGING ALL SOURCES & SERVERS across all providers
+  const uniqueList = [];
+  const teamsMap = new Map();
   const uniqueMap = new Map();
+
+  function cleanTeamName(name) {
+    return (name || '')
+      .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+      .toLowerCase()
+      .replace(/\b(as|rc|fc|ac|sc|cf|afc|club|de|du|la|le)\b/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .trim();
+  }
+
+  function getTeamsPair(m) {
+    let home = m.teams?.home?.name || '';
+    let away = m.teams?.away?.name || '';
+    if (!home || !away) {
+      let clean = (m.title || '')
+        .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/gu, '')
+        .trim();
+      if (clean.includes(':')) {
+        clean = clean.split(':').slice(1).join(':').trim();
+      }
+      const vsMatch = clean.match(/^(.+?)\s+(?:vs\.?|v\.?|contre|-)\s+(.+)$/i);
+      if (vsMatch) {
+        home = vsMatch[1].trim();
+        away = vsMatch[2].trim();
+      }
+    }
+    const t1 = cleanTeamName(home);
+    const t2 = cleanTeamName(away);
+    if (t1 && t2 && t1 !== t2 && t1.length > 2 && t2.length > 2) {
+      return [t1, t2].sort().join('_vs_');
+    }
+    return null;
+  }
+
+  function mergeMatch(existing, incoming) {
+    // Merge sources without duplicating
+    for (const src of (incoming.sources || [])) {
+      if (!existing.sources.some(s => (s.id && s.id === src.id) || (s.url && s.url === src.url))) {
+        existing.sources.push(src);
+      }
+    }
+    // Merge servers
+    for (const s of (incoming.servers || [incoming.server])) {
+      if (s && !existing.servers.includes(s)) {
+        existing.servers.push(s);
+      }
+    }
+    // Maintain alias IDs for instant lookup
+    if (!existing.allIds) existing.allIds = [existing.id];
+    if (incoming.id && !existing.allIds.includes(incoming.id)) existing.allIds.push(incoming.id);
+    if (incoming.rawId && !existing.allIds.includes(incoming.rawId)) existing.allIds.push(incoming.rawId);
+
+    // Live status takes precedence
+    if (incoming.live) existing.live = true;
+
+    // Prefer specific tournament over generic "Sports Event" or empty
+    if (incoming.tournament && (!existing.tournament || existing.tournament.toLowerCase().includes('sports event') || existing.tournament.toLowerCase() === 'soccer')) {
+      existing.tournament = incoming.tournament;
+    }
+
+    // Prefer teams with badges
+    if (incoming.teams && (!existing.teams || !existing.teams.home?.badge)) {
+      existing.teams = incoming.teams;
+    }
+
+    // Prefer clean readable title without emoji pollution
+    if (incoming.title && !incoming.title.includes('⚽') && !incoming.title.includes('🇫🇷')) {
+      if (existing.title.includes('⚽') || existing.title.includes('🇫🇷') || existing.title.includes('v.')) {
+        existing.title = incoming.title;
+      }
+    }
+
+    if (incoming.popular) existing.popular = true;
+  }
+
   for (const match of allMatches) {
-    // Composite key: normalized title + tournament/category to prevent incorrect collisions
-    const titleKey = (match.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const tourKey = ((match.tournament || match.category || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const key = tourKey ? `${titleKey}__${tourKey}` : titleKey;
-    if (uniqueMap.has(key)) {
-      const existing = uniqueMap.get(key);
-      // Merge sources without duplicating
-      for (const src of match.sources) {
-        if (!existing.sources.some(s => (s.id && s.id === src.id) || (s.url && s.url === src.url))) {
-          existing.sources.push(src);
+    const pair = getTeamsPair(match);
+    let merged = false;
+
+    if (pair) {
+      const candidates = teamsMap.get(pair) || [];
+      for (const cand of candidates) {
+        // Match within 3 days window (covers timezone differences and schedule dates)
+        if (Math.abs((cand.date || 0) - (match.date || 0)) < 3 * 86400000) {
+          mergeMatch(cand, match);
+          merged = true;
+          break;
         }
       }
-      if (!existing.servers.includes(match.server)) {
-        existing.servers.push(match.server);
+      if (!merged) {
+        const copy = {
+          ...match,
+          servers: match.servers ? [...match.servers] : [match.server],
+          sources: [...match.sources],
+          allIds: [match.id]
+        };
+        candidates.push(copy);
+        teamsMap.set(pair, candidates);
+        uniqueList.push(copy);
       }
-      if (match.live) existing.live = true;
-      if (!existing.teams && match.teams) existing.teams = match.teams;
-      if (!existing.tournament && match.tournament) existing.tournament = match.tournament;
-      if (match.popular) existing.popular = true;
     } else {
-      uniqueMap.set(key, {
-        ...match,
-        servers: match.servers ? [...match.servers] : [match.server],
-        sources: [...match.sources]
-      });
+      const titleKey = (match.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const tourKey = ((match.tournament || match.category || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const key = tourKey ? `${titleKey}__${tourKey}` : titleKey;
+
+      if (uniqueMap.has(key)) {
+        mergeMatch(uniqueMap.get(key), match);
+      } else {
+        const copy = {
+          ...match,
+          servers: match.servers ? [...match.servers] : [match.server],
+          sources: [...match.sources],
+          allIds: [match.id]
+        };
+        uniqueMap.set(key, copy);
+        uniqueList.push(copy);
+      }
     }
   }
 
-  const sorted = Array.from(uniqueMap.values()).sort((a, b) => {
+  const sorted = uniqueList.sort((a, b) => {
     // Live first, then chronological by start date
     if (a.live && !b.live) return -1;
     if (!a.live && b.live) return 1;
