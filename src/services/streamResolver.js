@@ -143,7 +143,6 @@ export async function fetchDliveRealStream(channelId) {
     }
   }
 
-  console.warn(`[fetchDliveRealStream] Unable to extract stream for channel ${cleanId} across mirrors`);
   return null;
 }
 

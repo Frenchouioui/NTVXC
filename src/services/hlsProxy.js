@@ -1,15 +1,26 @@
 import { Readable } from 'node:stream';
 import { CONFIG } from '../config.js';
 
+function decodeUrlParam(raw) {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  try {
+    while (str.includes('%3A') || str.includes('%2F') || str.includes('%3a') || str.includes('%2f')) {
+      str = decodeURIComponent(str);
+    }
+  } catch {}
+  return str;
+}
+
 /**
  * Handle HLS playlist proxying and segment URL rewriting
  */
 export async function handleHlsProxy(req, res) {
-  const targetUrl = req.query.url;
-  const referer = req.query.ref || CONFIG.NTV_BASE_URL;
+  const targetUrl = decodeUrlParam(req.query.url);
+  const referer = decodeUrlParam(req.query.ref) || CONFIG.NTV_BASE_URL;
 
-  if (!targetUrl) {
-    return res.status(400).send('Missing url parameter');
+  if (!targetUrl || !targetUrl.startsWith('http')) {
+    return res.status(400).send('Missing or invalid url parameter');
   }
 
   try {
@@ -71,11 +82,11 @@ export async function handleHlsProxy(req, res) {
  * Handle binary TS chunk streaming without buffering in memory
  */
 export async function handleTsProxy(req, res) {
-  const targetUrl = req.query.url;
-  const referer = req.query.ref || CONFIG.NTV_BASE_URL;
+  const targetUrl = decodeUrlParam(req.query.url);
+  const referer = decodeUrlParam(req.query.ref) || CONFIG.NTV_BASE_URL;
 
-  if (!targetUrl) {
-    return res.status(400).send('Missing url parameter');
+  if (!targetUrl || !targetUrl.startsWith('http')) {
+    return res.status(400).send('Missing or invalid url parameter');
   }
 
   try {
