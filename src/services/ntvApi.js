@@ -458,11 +458,14 @@ async function refreshMatches() {
       existing.teams = incoming.teams;
     }
 
-    // Prefer clean readable title without emoji pollution
-    if (incoming.title && !incoming.title.includes('⚽') && !incoming.title.includes('🇫🇷')) {
-      if (existing.title.includes('⚽') || existing.title.includes('🇫🇷') || existing.title.includes('v.')) {
+    // Prefer clean readable title without emoji or colon pollution
+    const hasFlagsOrColon = (t) => /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}]/u.test(t || '') || (t || '').includes(':');
+    if (incoming.title && !hasFlagsOrColon(incoming.title)) {
+      if (hasFlagsOrColon(existing.title) || existing.title.includes('v.')) {
         existing.title = incoming.title;
       }
+    } else if (existing.teams?.home?.name && existing.teams?.away?.name && hasFlagsOrColon(existing.title)) {
+      existing.title = `${existing.teams.home.name} vs ${existing.teams.away.name}`;
     }
 
     if (incoming.popular) existing.popular = true;
