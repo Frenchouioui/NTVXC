@@ -4,9 +4,10 @@
  * keyboard shortcuts, picture-in-picture, and source switching.
  */
 export class UniversalPlayer {
-  constructor(containerEl, onSourceChange) {
+  constructor(containerEl, onSourceChange, onClose) {
     this.container = containerEl;
     this.onSourceChange = onSourceChange;
+    this.onClose = onClose;
     this.hls = null;
     this.videoEl = null;
     this.iframeEl = null;
@@ -54,6 +55,10 @@ export class UniversalPlayer {
               <div class="live-pill">
                 <span class="live-dot"></span>
                 <span>EN DIRECT</span>
+              </div>
+              <div class="quality-badge-pill" id="playerQualityBadge" style="display: none;" title="Qualité de diffusion">
+                <i class="ph-bold ph-broadcast"></i>
+                <span id="playerQualityText">HD</span>
               </div>
               <div class="volume-group">
                 <button type="button" class="ctrl-btn" id="muteBtn" title="Activer / Couper le son (M)">
@@ -174,9 +179,16 @@ export class UniversalPlayer {
     this.playerFavText = document.getElementById('playerFavText');
     this.theaterBtn = document.getElementById('theaterBtn');
     this.closePlayerBtn = document.getElementById('closePlayerBtn');
+    this.playerQualityBadge = document.getElementById('playerQualityBadge');
+    this.playerQualityText = document.getElementById('playerQualityText');
   }
 
   bindEvents() {
+    // Close player button
+    if (this.closePlayerBtn) {
+      this.closePlayerBtn.addEventListener('click', () => this.close());
+    }
+
     // Video click -> Play/Pause
     this.videoEl.addEventListener('click', () => this.togglePlay());
     this.playPauseBtn.addEventListener('click', () => this.togglePlay());
@@ -767,8 +779,14 @@ export class UniversalPlayer {
       this.hls.loadSource(streamUrl);
       this.hls.attachMedia(this.videoEl);
 
-      this.hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+      this.hls.on(window.Hls.Events.MANIFEST_PARSED, (event, data) => {
         this.showLoading(false);
+        if (data.levels && data.levels.length > 0) {
+          const maxLevel = data.levels.reduce((prev, curr) => (curr.height > prev.height ? curr : prev), data.levels[0]);
+          if (maxLevel && maxLevel.height) {
+            this.updateQualityBadge(maxLevel.height);
+          }
+        }
         this.videoEl.play().catch(() => {
           // Autoplay blocked by browser policy -> mute and play
           this.videoEl.muted = true;
@@ -776,6 +794,15 @@ export class UniversalPlayer {
           this.updateVolumeUI();
           this.videoEl.play();
         });
+      });
+
+      this.hls.on(window.Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        if (this.hls && this.hls.levels && this.hls.levels[data.level]) {
+          const lvl = this.hls.levels[data.level];
+          if (lvl && lvl.height) {
+            this.updateQualityBadge(lvl.height);
+          }
+        }
       });
 
       this.hls.on(window.Hls.Events.ERROR, (event, data) => {
@@ -801,9 +828,28 @@ export class UniversalPlayer {
       this.videoEl.src = streamUrl;
       this.videoEl.play().catch(e => console.warn('Native play error:', e));
       this.showLoading(false);
+      this.updateQualityBadge(1080);
     } else {
       this.showError(true, 'Format non supporté', 'Veuillez ouvrir ce flux dans VLC ou via le lecteur web.');
     }
+  }
+
+  updateQualityBadge(height) {
+    if (!this.playerQualityBadge || !this.playerQualityText) return;
+    if (!height || height <= 0) {
+      this.playerQualityBadge.style.display = 'none';
+      return;
+    }
+    let label = 'HD';
+    if (height >= 2160) label = '4K UHD';
+    else if (height >= 1440) label = '1440p';
+    else if (height >= 1080) label = '1080p FHD';
+    else if (height >= 720) label = '720p HD';
+    else if (height >= 480) label = '480p';
+    else label = `${height}p`;
+
+    this.playerQualityText.textContent = label;
+    this.playerQualityBadge.style.display = 'inline-flex';
   }
 
   handleNetworkFailure(streamUrl) {
@@ -826,6 +872,9 @@ export class UniversalPlayer {
   }
 
   destroyHls() {
+    if (this.playerQualityBadge) {
+      this.playerQualityBadge.style.display = 'none';
+    }
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
@@ -834,6 +883,23 @@ export class UniversalPlayer {
       this.videoEl.pause();
       this.videoEl.removeAttribute('src');
       this.videoEl.load();
+    }
+  }
+
+  close() {
+    this.destroyHls();
+    this.resetTheaterMode();
+    if (this.iframeEl) {
+      this.iframeEl.src = 'about:blank';
+      this.iframeEl.style.display = 'none';
+    }
+    if (this.videoEl) {
+      this.videoEl.pause();
+      this.videoEl.removeAttribute('src');
+      this.videoEl.load();
+    }
+    if (typeof this.onClose === 'function') {
+      this.onClose();
     }
   }
 

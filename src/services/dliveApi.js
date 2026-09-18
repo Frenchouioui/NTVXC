@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import { generateChannelPoster, generateMatchPoster } from './ntvApi.js';
-import { getActiveMirror } from './mirrorManager.js';
+import { getActiveMirror, fetchWithFallback } from './mirrorManager.js';
 
 let dliveChannelsCache = {
   data: [],
@@ -19,6 +19,27 @@ let dliveFullScheduleCache = {
 
 const DLIVE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+function isEventCurrentlyLive(dayIdx, eb, timeStr) {
+  if (dayIdx !== 0) return false;
+  const lower = (eb || '').toLowerCase();
+  if (lower.includes('live-pulse') || lower.includes('is-live') || lower.includes('en direct') || lower.includes('>live<')) {
+    return true;
+  }
+  const tm = (timeStr || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (tm) {
+    const eventHours = parseInt(tm[1], 10);
+    const eventMins = parseInt(tm[2], 10);
+    const now = new Date();
+    const currentMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const targetMins = eventHours * 60 + eventMins;
+    const diff = currentMins - targetMins;
+    if (diff >= -10 && diff <= 150) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Fetch and parse 24/7 channels from dlive
  */
@@ -31,7 +52,7 @@ export async function getDliveChannels() {
   const dliveBase = getActiveMirror('dlive');
 
   try {
-    const res = await fetch(`${dliveBase}/24-7-channels.php`, {
+    const res = await fetchWithFallback('dlive', '/24-7-channels.php', {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': `${dliveBase}/`
@@ -105,7 +126,7 @@ export async function getDliveSchedule() {
   const dliveBase = getActiveMirror('dlive');
 
   try {
-    const res = await fetch(`${dliveBase}/`, {
+    const res = await fetchWithFallback('dlive', '/', {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': `${dliveBase}/`
@@ -179,7 +200,7 @@ export async function getDliveSchedule() {
           if (!sources.length) continue;
 
           const eventId = `ntv-dlive-match-d${dayIdx}-c${catIdx}-e${evIdx}-${sources[0].channelId}`;
-          const isLive = dayIdx === 0 && (eb.includes('live-pulse') || eb.includes('EN DIRECT') || time.includes(':'));
+          const isLive = isEventCurrentlyLive(dayIdx, eb, time);
 
           const eventItem = {
             id: eventId,

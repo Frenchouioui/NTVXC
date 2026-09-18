@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CONFIG } from '../config.js';
-import { getChannels, getChannelById, getMatches, getMatchById, getMatchesStats, getUnifiedCalendar } from '../services/ntvApi.js';
+import { getChannels, getChannelById, getMatches, getMatchById, getMatchesStats, getUnifiedCalendar, getChannelsCount } from '../services/ntvApi.js';
 import { resolveStream } from '../services/streamResolver.js';
 
 const router = Router();
@@ -30,7 +30,7 @@ router.get('/stats', async (req, res) => {
     const stats = await getMatchesStats();
     res.json({
       success: true,
-      channelsCount: 10360,
+      channelsCount: getChannelsCount(),
       matchesCount: stats.total,
       liveMatchesCount: stats.live,
       byServer: stats.byServer,
@@ -75,12 +75,13 @@ router.get(['/matches', '/live-matches'], async (req, res) => {
     }
 
     const stats = await getMatchesStats();
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : matches.length;
 
     res.json({
       success: true,
       total: matches.length,
       byServer: stats.byServer,
-      matches: matches.slice(0, 300)
+      matches: matches.slice(0, limit)
     });
   } catch (e) {
     res.status(500).json({ error: e.message });

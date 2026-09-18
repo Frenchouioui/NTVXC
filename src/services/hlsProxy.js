@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import { CONFIG } from '../config.js';
 
 /**
@@ -67,7 +68,7 @@ export async function handleHlsProxy(req, res) {
 }
 
 /**
- * Handle binary TS chunk streaming
+ * Handle binary TS chunk streaming without buffering in memory
  */
 export async function handleTsProxy(req, res) {
   const targetUrl = req.query.url;
@@ -78,7 +79,11 @@ export async function handleTsProxy(req, res) {
   }
 
   try {
+    const controller = new AbortController();
+    req.on('close', () => controller.abort());
+
     const upstreamRes = await fetch(targetUrl, {
+      signal: controller.signal,
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': referer,
@@ -90,6 +95,11 @@ export async function handleTsProxy(req, res) {
       return res.status(upstreamRes.status).send(`Upstream chunk error: ${upstreamRes.statusText}`);
     }
 
+    const contentLength = upstreamRes.headers.get('content-length');
+    if (contentLength) {
+      res.setHeader('Content-Length', contentLength);
+    }
+
     res.setHeader('Content-Type', 'video/mp2t');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -97,11 +107,20 @@ export async function handleTsProxy(req, res) {
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     res.setHeader('Cache-Control', 'public, max-age=3600');
 
-    // Convert fetch body to stream pipe if readable, or send arrayBuffer
-    const buffer = await upstreamRes.arrayBuffer();
-    res.send(Buffer.from(buffer));
+    if (upstreamRes.body) {
+      const nodeStream = Readable.fromWeb(upstreamRes.body);
+      nodeStream.on('error', (err) => {
+        if (!res.headersSent) res.status(500).end();
+      });
+      nodeStream.pipe(res);
+    } else {
+      res.end();
+    }
   } catch (e) {
+    if (e.name === 'AbortError') return;
     console.error('[hlsProxy] Error streaming TS segment:', e.message);
-    res.status(500).send(`TS proxy error: ${e.message}`);
+    if (!res.headersSent) {
+      res.status(500).send(`TS proxy error: ${e.message}`);
+    }
   }
 }

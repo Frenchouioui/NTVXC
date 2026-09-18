@@ -371,27 +371,26 @@ export async function resolveHesgoal(channelId, baseUrl) {
  * ENSURES ALL SOURCES ARE SHOWN AND ACCURATELY RESOLVED!
  */
 export async function resolveMatchStream(matchId, baseUrl) {
-  const streams = [];
   const { getMatchById } = await import('./ntvApi.js');
   const match = await getMatchById(matchId);
 
   if (!match || !Array.isArray(match.sources) || !match.sources.length) {
-    return streams;
+    return [];
   }
 
-  // Iterate over EVERY SINGLE source
-  for (let i = 0; i < match.sources.length; i++) {
-    const src = match.sources[i];
+  // Resolve all sources in parallel via Promise.allSettled
+  const sourcePromises = match.sources.map(async (src, i) => {
+    const sourceStreams = [];
     const sourceUrl = src.url || '';
     const label = src.channelName || (src.source ? `${src.source.toUpperCase()} ${src.id || ''}` : `Source ${i + 1}`);
     const serverName = (src.server || match.server || 'Server').toUpperCase();
     const sourceIndex = i + 1;
 
-    // 1. Direct M3U8 inside query parameter or URL (e.g. Falcon feeds)
-    if (sourceUrl.includes('.m3u8') || sourceUrl.includes('url=http')) {
+    // 1. Direct M3U8 inside query parameter or URL (e.g. Falcon / livelive24 feeds)
+    if (sourceUrl.includes('.m3u8') || sourceUrl.includes('url=') || sourceUrl.includes('livelive24')) {
       const m3u8Url = extractDirectM3u8(sourceUrl);
       if (m3u8Url) {
-        streams.push({
+        sourceStreams.push({
           name: `NTVio • [${serverName}]`,
           title: `⚽ Source ${sourceIndex}: ${label} [Direct HD]`,
           url: m3u8Url,
@@ -399,7 +398,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
         });
 
         if (baseUrl) {
-          streams.push({
+          sourceStreams.push({
             name: `NTVio • [${serverName}] (Proxy)`,
             title: `🛡️ Source ${sourceIndex}: ${label} [Proxy Anti-Bug]`,
             url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(m3u8Url)}&ref=${encodeURIComponent('https://livelive24.com/')}`,
@@ -409,13 +408,13 @@ export async function resolveMatchStream(matchId, baseUrl) {
 
         // Also add web link if it had a wrapper
         if (sourceUrl.startsWith('http') && !sourceUrl.endsWith('.m3u8')) {
-          streams.push({
+          sourceStreams.push({
             name: `NTVio • [${serverName}] (Web)`,
             title: `🌐 Source ${sourceIndex}: ${label} ↗`,
             externalUrl: sourceUrl
           });
         }
-        continue;
+        return sourceStreams;
       }
     }
 
@@ -429,7 +428,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
       const realDlive = await fetchDliveRealStream(chId);
       if (realDlive && realDlive.streamUrl) {
         if (baseUrl) {
-          streams.push({
+          sourceStreams.push({
             name: `NTVio • [${serverName}]`,
             title: `⚽ Source ${sourceIndex}: ${label} [DLive CDN HD]`,
             url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(realDlive.streamUrl)}&ref=${encodeURIComponent(realDlive.referer)}`,
@@ -437,7 +436,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
           });
         }
 
-        streams.push({
+        sourceStreams.push({
           name: `NTVio • [${serverName}] (Direct)`,
           title: `⚽ Source ${sourceIndex}: ${label} [Direct CDN]`,
           url: realDlive.streamUrl,
@@ -446,7 +445,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
       } else {
         // Embedded player fallback (NEVER use premium.hls.st which trolls with "stream was stolen")
         const embedUrl = `https://dlive.sx/stream/stream-${chId}.php`;
-        streams.push({
+        sourceStreams.push({
           name: `NTVio • [${serverName}] (Lecteur Intégré)`,
           title: `📺 Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
           url: embedUrl,
@@ -456,21 +455,21 @@ export async function resolveMatchStream(matchId, baseUrl) {
       }
 
       // Legitimate official watch page on DLive (NEVER blocked, unlike internal stream-*.php)
-      streams.push({
+      sourceStreams.push({
         name: `DLive.sx • [Officiel]`,
         title: `🌐 DLive.sx Officiel: ${label} ↗`,
         externalUrl: `https://dlive.sx/watch.php?id=${chId}`,
         isExternal: true
       });
-      continue;
+      return sourceStreams;
     }
 
     // 2.5 Titan / CDNLive player URLs (Direct HLS & Proxy instead of broken embeds)
     if (src.server === 'titan' || (sourceUrl && sourceUrl.includes('cdnlivetv.tv'))) {
       const cdnStreams = await resolveCdnLiveFromUrl(sourceUrl, `Source ${sourceIndex}: ${label}`, baseUrl);
       if (cdnStreams.length > 0) {
-        streams.push(...cdnStreams);
-        continue;
+        sourceStreams.push(...cdnStreams);
+        return sourceStreams;
       }
     }
 
@@ -482,7 +481,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
       const ntvOfficialUrl = `https://ntv.cx/watch/${serverLower}/${match.rawId || match.id}?source=${i}`;
 
       // In-app player stream (loads inside player iframe without external popup!)
-      streams.push({
+      sourceStreams.push({
         name: `NTVio • [${serverName}]`,
         title: `⚽ Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
         url: embedUrl,
@@ -491,19 +490,19 @@ export async function resolveMatchStream(matchId, baseUrl) {
       });
 
       // Optional secondary external link
-      streams.push({
+      sourceStreams.push({
         name: `NTV.cx • [Officiel]`,
         title: `🌐 NTV.cx: ${label} ↗`,
         externalUrl: ntvOfficialUrl,
         isExternal: true
       });
-      continue;
+      return sourceStreams;
     }
 
     // 4. Any other web link (clean up DaddyLive URLs to prevent Access Blocked)
     if (sourceUrl) {
       if (sourceUrl.includes('.m3u8')) {
-        streams.push({
+        sourceStreams.push({
           name: `NTVio • [${serverName}]`,
           title: `⚽ Source ${sourceIndex}: ${label} [Direct M3U8]`,
           url: sourceUrl
@@ -513,13 +512,23 @@ export async function resolveMatchStream(matchId, baseUrl) {
           .replace(/\/stream\/stream-(\d+)\.php/, '/watch.php?id=$1')
           .replace(/dlhd\.st|dlhd\.sx|daddylive\.(?:me|sx|mp)/g, 'dlive.sx');
 
-        streams.push({
+        sourceStreams.push({
           name: `NTVio • [${serverName}] (Web)`,
           title: `🌐 Source ${sourceIndex}: ${label} ↗`,
           externalUrl: cleanWatchUrl,
           isExternal: true
         });
       }
+    }
+
+    return sourceStreams;
+  });
+
+  const settled = await Promise.allSettled(sourcePromises);
+  const streams = [];
+  for (const res of settled) {
+    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+      streams.push(...res.value);
     }
   }
 
@@ -536,13 +545,28 @@ export async function resolveMatchStream(matchId, baseUrl) {
 export function extractDirectM3u8(wrapperUrl) {
   if (!wrapperUrl) return null;
 
-  // Pattern 1: Nested URL inside query parameter (preserves full token string)
-  const urlIdx = wrapperUrl.indexOf('url=http');
-  if (urlIdx !== -1) {
-    return wrapperUrl.substring(urlIdx + 4);
+  // Pattern 1: Base64-encoded URL inside query parameter (e.g. livelive24.com/dlhd.html?url=aHR0cHM6...)
+  const b64Match = wrapperUrl.match(/[?&]url=([A-Za-z0-9+/=]+)/);
+  if (b64Match && b64Match[1] && b64Match[1].startsWith('aHR0c')) {
+    try {
+      const decoded = Buffer.from(b64Match[1], 'base64').toString('utf-8');
+      if (decoded.includes('.m3u8') || decoded.startsWith('http')) {
+        return decoded;
+      }
+    } catch {}
   }
 
-  // Pattern 2: Standard M3U8 regex
+  // Pattern 2: Nested URL inside query parameter (url=http... or url=https...)
+  const urlIdx = wrapperUrl.indexOf('url=http');
+  if (urlIdx !== -1) {
+    let extracted = wrapperUrl.substring(urlIdx + 4);
+    try {
+      extracted = decodeURIComponent(extracted);
+    } catch {}
+    return extracted;
+  }
+
+  // Pattern 3: Standard direct M3U8 regex
   const match = wrapperUrl.match(/https?:\/\/[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?/i);
   return match ? match[0] : null;
 }

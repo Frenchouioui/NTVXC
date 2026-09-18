@@ -72,6 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const playerContainer = document.getElementById('universalPlayerContainer');
   const player = new UniversalPlayer(playerContainer, (stream, idx) => {
     showToast(`Diffusion : ${stream.title || stream.name}`);
+  }, () => {
+    // Teardown callback when player is closed
+    if (playerSection) playerSection.style.display = 'none';
+    state.activeItemId = null;
+    document.querySelectorAll('.match-card, .channel-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    showToast('Lecteur fermé');
   });
   player.onToggleFavorite = (item) => {
     toggleFavorite(item);
@@ -91,7 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadMatches();
     await loadChannels(true);
     updateFavoritesBadge();
-    // Do NOT auto-open the player on startup - wait for user to click on an event or channel
+
+    // Background Auto-Refresh every 90s for live matches (silent update)
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        if (state.currentTab === 'sports') {
+          loadMatches(true);
+          loadStats();
+        }
+      }
+    }, 90000);
   }
 
   // --- 1. NAVIGATION & TABS ---
@@ -272,13 +289,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return name.slice(0, 2).toUpperCase();
   }
 
-  async function loadMatches() {
-    sportsGrid.innerHTML = `
-      <div class="loading-state-box">
-        <div class="spinner-ring"></div>
-        <span>Chargement des diffusions sportives en direct...</span>
-      </div>
-    `;
+  function renderMatchesSkeleton() {
+    let skeletons = '';
+    for (let i = 0; i < 8; i++) {
+      skeletons += `
+        <div class="skeleton-card skeleton-match-card">
+          <div class="skeleton-header">
+            <div class="skeleton-shimmer skeleton-pill"></div>
+            <div class="skeleton-shimmer skeleton-time"></div>
+          </div>
+          <div class="skeleton-teams">
+            <div class="skeleton-team-row">
+              <div class="skeleton-shimmer skeleton-avatar"></div>
+              <div class="skeleton-shimmer skeleton-line w-70"></div>
+            </div>
+            <div class="skeleton-vs">VS</div>
+            <div class="skeleton-team-row">
+              <div class="skeleton-shimmer skeleton-avatar"></div>
+              <div class="skeleton-shimmer skeleton-line w-60"></div>
+            </div>
+          </div>
+          <div class="skeleton-footer">
+            <div class="skeleton-shimmer skeleton-tag"></div>
+            <div class="skeleton-shimmer skeleton-tag w-30"></div>
+          </div>
+        </div>
+      `;
+    }
+    return skeletons;
+  }
+
+  async function loadMatches(isSilent = false) {
+    if (!isSilent) {
+      sportsGrid.innerHTML = renderMatchesSkeleton();
+    }
 
     try {
       const params = new URLSearchParams();
@@ -306,13 +350,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderMatches(state.cachedMatches);
     } catch (e) {
-      sportsGrid.innerHTML = `
-        <div class="empty-state-box">
-          <i class="ph-bold ph-warning-circle empty-icon" style="color:#ef4444;"></i>
-          <h3>Erreur lors du chargement des matchs</h3>
-          <p>Veuillez rafraîchir la liste dans quelques instants.</p>
-        </div>
-      `;
+      if (!isSilent) {
+        sportsGrid.innerHTML = `
+          <div class="empty-state-box">
+            <i class="ph-bold ph-warning-circle empty-icon" style="color:#ef4444;"></i>
+            <h3>Erreur lors du chargement des matchs</h3>
+            <p>Veuillez rafraîchir la liste dans quelques instants.</p>
+          </div>
+        `;
+      }
     }
   }
 
@@ -490,15 +536,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 5. CHANNELS (24/7 TV TAB) ---
+  function renderChannelsSkeleton() {
+    let skeletons = '';
+    for (let i = 0; i < 12; i++) {
+      skeletons += `
+        <div class="skeleton-card skeleton-channel-card">
+          <div class="skeleton-shimmer skeleton-channel-poster"></div>
+          <div class="skeleton-channel-info">
+            <div class="skeleton-shimmer skeleton-line w-80"></div>
+            <div class="skeleton-shimmer skeleton-tag w-40"></div>
+          </div>
+        </div>
+      `;
+    }
+    return skeletons;
+  }
+
   async function loadChannels(reset = false) {
     if (reset) {
       state.channelsOffset = 0;
-      channelsGrid.innerHTML = `
-        <div class="loading-state-box">
-          <div class="spinner-ring"></div>
-          <span>Chargement des chaînes de télévision...</span>
-        </div>
-      `;
+      channelsGrid.innerHTML = renderChannelsSkeleton();
     }
 
     try {

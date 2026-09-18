@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import { detectCountryFromName, getDliveChannels, getDliveSchedule, getDliveFullSchedule, decodeHtmlEntities } from './dliveApi.js';
-import { getActiveMirror } from './mirrorManager.js';
+import { getActiveMirror, fetchWithFallback } from './mirrorManager.js';
 
 let channelsCache = {
   data: [],
@@ -13,6 +13,10 @@ let matchesCache = {
   all: [],
   lastFetched: 0
 };
+
+export function getChannelsCount() {
+  return channelsCache.total || channelsCache.data.length || 10360;
+}
 
 export function clearCache() {
   channelsCache = { data: [], lastFetched: 0, total: 0 };
@@ -33,13 +37,9 @@ export async function fetchChannelsFromNtv(offset = 0, limit = 100, query = '') 
     params.set('q', query.trim());
   }
 
-  const ntvBase = getActiveMirror('ntv');
-  const url = `${ntvBase}/api/get-channels?${params.toString()}`;
-
-  const res = await fetch(url, {
+  const res = await fetchWithFallback('ntv', `/api/get-channels?${params.toString()}`, {
     headers: {
       'User-Agent': CONFIG.USER_AGENT,
-      'Referer': `${ntvBase}/channels`,
       'Accept': 'application/json'
     }
   });
@@ -297,6 +297,39 @@ export async function getMatchById(id) {
 }
 
 /**
+ * Fetch matches directly from LiveLive24 (Falcon/Hesgoal feeds)
+ */
+export async function fetchLivelive24Matches() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+
+    const res = await fetch('https://livelive24.com/test/ntv/ntv.json', {
+      headers: {
+        'User-Agent': CONFIG.USER_AGENT,
+        'Accept': 'application/json'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+    const list = await res.json();
+    if (!Array.isArray(list)) return [];
+
+    return list.map(item => {
+      const norm = normalizeMatch(item, 'falcon');
+      norm.server = 'falcon';
+      norm.live = item.live || item.status === 'live';
+      return norm;
+    });
+  } catch (e) {
+    console.warn('[ntvApi] Failed to fetch LiveLive24 matches:', e.message);
+    return [];
+  }
+}
+
+/**
  * Refresh matches from all ntv.cx servers + dlive.sx schedule
  */
 async function refreshMatches() {
@@ -304,14 +337,11 @@ async function refreshMatches() {
   const byServer = {};
 
   // 1. Fetch NTV matches across all servers
-  const ntvBase = getActiveMirror('ntv');
   for (const server of CONFIG.MATCH_SERVERS) {
     try {
-      const url = `${ntvBase}/api/get-matches?server=${server}&type=both`;
-      const res = await fetch(url, {
+      const res = await fetchWithFallback('ntv', `/api/get-matches?server=${server}&type=both`, {
         headers: {
           'User-Agent': CONFIG.USER_AGENT,
-          'Referer': `${ntvBase}/matches/${server}`,
           'Accept': 'application/json'
         }
       });
@@ -346,11 +376,26 @@ async function refreshMatches() {
     console.warn('[ntvApi] Failed to fetch DLive schedule:', e.message);
   }
 
+  // 2.5. Fetch LiveLive24 Falcon direct feeds (https://livelive24.com/test/ntv/ntv.json)
+  try {
+    const live24Events = await fetchLivelive24Matches();
+    if (live24Events.length > 0) {
+      if (!byServer['falcon']) byServer['falcon'] = [];
+      byServer['falcon'].push(...live24Events);
+      allMatches.push(...live24Events);
+      console.log(`[ntvApi] Fetched ${live24Events.length} direct feeds from livelive24.`);
+    }
+  } catch (e) {
+    console.warn('[ntvApi] Failed to fetch LiveLive24 schedule:', e.message);
+  }
+
   // 3. Deduplicate events while MERGING ALL SOURCES & SERVERS
   const uniqueMap = new Map();
   for (const match of allMatches) {
-    // Group key by simplified title
-    const key = match.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
+    // Composite key: normalized title + tournament/category to prevent incorrect collisions
+    const titleKey = (match.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const tourKey = ((match.tournament || match.category || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const key = tourKey ? `${titleKey}__${tourKey}` : titleKey;
     if (uniqueMap.has(key)) {
       const existing = uniqueMap.get(key);
       // Merge sources without duplicating
