@@ -1,7 +1,6 @@
 services:
   ntvio:
     build: .
-    image: ntvio-live:latest
     container_name: ntvio-live
     restart: unless-stopped
     ports:
