@@ -850,58 +850,66 @@ body {
 }
 
 /* ==========================================================================
-   Theater Mode
+   Theater Mode (Cinema Expansive Layout - No Scrollbars / Centered)
    ========================================================================== */
 
+body.theater-active .app-layout {
+  max-width: 1920px;
+}
+
 .player-section.section-theater {
-  width: 100vw !important;
-  max-width: 100vw !important;
+  width: 100% !important;
+  max-width: 100% !important;
   position: relative !important;
-  left: 50% !important;
-  right: 50% !important;
-  margin-left: -50vw !important;
-  margin-right: -50vw !important;
-  margin-top: -1.5rem !important;
-  margin-bottom: 2.5rem !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 2rem !important;
   padding: 0 !important;
   z-index: 50;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .player-wrapper.theater-mode {
-  border-radius: 0 !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-top: none !important;
-  background: #06070a !important;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95) !important;
+  border-radius: var(--radius-lg) !important;
+  background: #050608 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(56, 189, 248, 0.08) !important;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .player-wrapper.theater-mode .video-container {
   width: 100% !important;
-  max-height: 84vh !important;
-  height: calc(100vh - 170px) !important;
+  max-width: 100% !important;
+  height: min(78vh, 860px) !important;
   min-height: 480px !important;
   aspect-ratio: auto !important;
   background: #000 !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .player-wrapper.theater-mode #mainVideo,
 .player-wrapper.theater-mode #embedIframe {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100% !important;
   max-height: 100% !important;
   object-fit: contain !important;
   background: #000 !important;
+  margin: 0 auto !important;
 }
 
 .player-wrapper.theater-mode .player-meta-bar,
 .player-wrapper.theater-mode .sources-panel {
-  max-width: var(--max-width) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding-left: 2rem !important;
-  padding-right: 2rem !important;
+  max-width: 100% !important;
+  padding-left: 1.75rem !important;
+  padding-right: 1.75rem !important;
 }
 
 @media (max-width: 768px) {
@@ -966,21 +974,21 @@ body.in-fullscreen .player-wrapper {
   padding: 0 !important;
 }
 
-body.in-fullscreen .video-container,
+/* Native Container Fullscreen (Modern Top Layer) */
 .video-container:fullscreen,
 .video-container:-webkit-full-screen,
 .video-container:-moz-full-screen,
-.video-container:-ms-fullscreen,
-.video-container.is-fullscreen {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
+.video-container:-ms-fullscreen {
+  position: static !important;
   width: 100vw !important;
   height: 100vh !important;
+  max-width: 100vw !important;
   max-height: 100vh !important;
-  aspect-ratio: auto !important;
-  background: #000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
   border-radius: 0 !important;
+  background: #000 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -988,35 +996,69 @@ body.in-fullscreen .video-container,
   z-index: 2147483647 !important;
 }
 
-body.in-fullscreen .video-container #mainVideo,
+/* Fallback / Simulated Fullscreen */
+body.in-fullscreen .video-container,
+.video-container.is-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: auto !important;
+  background: #000 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  z-index: 2147483647 !important;
+}
+
+/* Video & Iframe inside Fullscreen */
 .video-container:fullscreen #mainVideo,
 .video-container:-webkit-full-screen #mainVideo,
 .video-container:-moz-full-screen #mainVideo,
+body.in-fullscreen .video-container #mainVideo,
 .video-container.is-fullscreen #mainVideo {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100vw !important;
   max-height: 100vh !important;
   object-fit: contain !important;
   background: #000 !important;
+  margin: 0 auto !important;
 }
 
-body.in-fullscreen .video-container #embedIframe,
 .video-container:fullscreen #embedIframe,
 .video-container:-webkit-full-screen #embedIframe,
 .video-container:-moz-full-screen #embedIframe,
+body.in-fullscreen .video-container #embedIframe,
 .video-container.is-fullscreen #embedIframe {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100vw !important;
   max-height: 100vh !important;
   border: none !important;
   background: #000 !important;
+  margin: 0 auto !important;
 }
 
-body.in-fullscreen .video-container .player-controls,
+/* Controls inside Fullscreen */
 .video-container:fullscreen .player-controls,
 .video-container:-webkit-full-screen .player-controls,
 .video-container:-moz-full-screen .player-controls,
+body.in-fullscreen .video-container .player-controls,
 .video-container.is-fullscreen .player-controls {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
   z-index: 2147483647 !important;
   padding: 2.5rem 3rem 1.75rem !important;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%) !important;
@@ -2793,21 +2835,6 @@ body.in-fullscreen .video-container .player-controls,
   font-size: 1.1rem;
 }
 
-/* Theater Mode Styles */
-.theater-mode {
-  max-width: 100% !important;
-  border-radius: 0 !important;
-}
-
-.section-theater {
-  max-width: 100% !important;
-  padding: 0 !important;
-}
-
-.theater-mode .video-container {
-  height: 75vh !important;
-  max-height: 860px;
-}
 
 /* ==========================================================================
    Responsive Adaptations

@@ -361,6 +361,7 @@ export class UniversalPlayer {
     const section = document.getElementById('playerSection');
     wrapper?.classList.remove('theater-mode');
     section?.classList.remove('section-theater');
+    document.body.classList.remove('theater-active');
     const theaterText = document.getElementById('theaterText');
     const theaterIcon = document.getElementById('theaterIcon');
     if (theaterText) theaterText.textContent = 'Mode Théâtre';
@@ -887,25 +888,24 @@ export class UniversalPlayer {
                            document.msFullscreenElement);
 
     if (!isFullscreen) {
-      // Prioritize document.documentElement for genuine OS window fullscreen (hides Chrome tabs, URL bar & Windows taskbar)
-      const docEl = document.documentElement;
+      // Prioritize videoContainer for native top-layer fullscreen
+      const videoContainer = this.container.querySelector('.video-container');
+      const target = videoContainer || this.videoEl || document.documentElement;
       try {
-        if (docEl.requestFullscreen) {
-          await docEl.requestFullscreen({ navigationUI: 'hide' });
-        } else if (docEl.webkitRequestFullscreen) {
-          docEl.webkitRequestFullscreen();
-        } else if (docEl.mozRequestFullScreen) {
-          docEl.mozRequestFullScreen();
-        } else if (docEl.msRequestFullscreen) {
-          docEl.msRequestFullscreen();
+        if (target.requestFullscreen) {
+          await target.requestFullscreen({ navigationUI: 'hide' });
+        } else if (target.webkitRequestFullscreen) {
+          target.webkitRequestFullscreen();
+        } else if (target.mozRequestFullScreen) {
+          target.mozRequestFullScreen();
+        } else if (target.msRequestFullscreen) {
+          target.msRequestFullscreen();
         }
       } catch (err) {
-        // Fallback to videoContainer
-        const videoContainer = this.container.querySelector('.video-container');
-        if (videoContainer && videoContainer.requestFullscreen) {
-          videoContainer.requestFullscreen().catch(e => console.warn(e));
-        } else if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
+        if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
           this.videoEl.webkitEnterFullscreen();
+        } else if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(e => console.warn('Document fullscreen error:', e));
         }
       }
     } else {
@@ -926,6 +926,7 @@ export class UniversalPlayer {
     const section = document.getElementById('playerSection');
     const isTheater = wrapper?.classList.toggle('theater-mode');
     section?.classList.toggle('section-theater', isTheater);
+    document.body.classList.toggle('theater-active', !!isTheater);
     const theaterText = document.getElementById('theaterText');
     const theaterIcon = document.getElementById('theaterIcon');
     if (theaterText) theaterText.textContent = isTheater ? 'Quitter Théâtre' : 'Mode Théâtre';
