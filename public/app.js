@@ -1,5 +1,4 @@
 import { UniversalPlayer } from './player.js?v=3.2';
-import { LiquidGlass } from './liquidglass.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // App State
@@ -86,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFilters();
     setupSearch();
     setupShortcuts();
-    setupLiquidGlass();
 
     await loadStats();
     await loadCountries();
@@ -94,29 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await loadChannels(true);
     updateFavoritesBadge();
     // Do NOT auto-open the player on startup - wait for user to click on an event or channel
-  }
-
-  async function setupLiquidGlass() {
-    try {
-      const stage = document.getElementById('liquidGlassStage');
-      const heroBanner = document.getElementById('liquidGlassHero');
-      if (stage && heroBanner) {
-        await LiquidGlass.init({
-          root: stage,
-          glassElements: [heroBanner],
-          defaults: {
-            cornerRadius: 20,
-            refraction: 0.7,
-            blurAmount: 0.2,
-            specular: 0.35,
-            edgeHighlight: 0.12,
-            chromAberration: 0.05
-          }
-        });
-      }
-    } catch (err) {
-      console.warn('LiquidGlass WebGL shader fallback active:', err);
-    }
   }
 
   // --- 1. NAVIGATION & TABS ---
