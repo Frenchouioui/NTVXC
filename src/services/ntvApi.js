@@ -464,8 +464,13 @@ async function refreshMatches() {
       if (hasFlagsOrColon(existing.title) || existing.title.includes('v.')) {
         existing.title = incoming.title;
       }
-    } else if (existing.teams?.home?.name && existing.teams?.away?.name && hasFlagsOrColon(existing.title)) {
-      existing.title = `${existing.teams.home.name} vs ${existing.teams.away.name}`;
+    } else if (existing.teams?.home?.name && existing.teams?.away?.name && (hasFlagsOrColon(existing.title) || existing.title.includes('v.'))) {
+      // Reconstruct clean title from teams — works even with no better incoming title
+      const home = existing.teams.home.name.replace(/\s+\w{2}$/, '').trim(); // strip country code suffix
+      const away = existing.teams.away.name.replace(/\s+\w{2}$/, '').trim();
+      if (home && away && !hasFlagsOrColon(home) && !hasFlagsOrColon(away)) {
+        existing.title = `${home} vs ${away}`;
+      }
     }
 
     if (incoming.popular) existing.popular = true;
@@ -492,6 +497,12 @@ async function refreshMatches() {
           sources: [...match.sources],
           allIds: [match.id]
         };
+        // Clean v. titles on first insertion using teams if available
+        if ((copy.title || '').includes('v.') && copy.teams?.home?.name && copy.teams?.away?.name) {
+          const h = copy.teams.home.name.replace(/\s+\w{2}$/, '').trim();
+          const a = copy.teams.away.name.replace(/\s+\w{2}$/, '').trim();
+          if (h && a) copy.title = `${h} vs ${a}`;
+        }
         candidates.push(copy);
         teamsMap.set(pair, candidates);
         uniqueList.push(copy);
@@ -618,8 +629,19 @@ function normalizeMatch(m, server) {
   const category = decodeHtmlEntities(m.category || 'Sports');
   const defaultTourn = decodeHtmlEntities(m.tournament || '');
 
+  // Helper: strip ALL emoji/flags from a string and trim excess whitespace
+  function stripEmoji(str) {
+    return (str || '')
+      .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F1E0}-\u{1F1FF}]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   const parsed = parseTeamsAndTournament(rawTitle, category, defaultTourn);
-  const title = parsed.cleanTitle || rawTitle;
+  const rawClean = parsed.cleanTitle || rawTitle;
+  const title = stripEmoji(rawClean).replace(/\s*:\s*/, ': ') // normalize colon spacing
+                    .replace(/^[^:]+:\s*/, '').trim() // strip leading "League:" prefix if team vs team follows
+                    || stripEmoji(rawClean); // fallback to full clean
   const tournament = parsed.tournament || defaultTourn;
   const date = m.date ? Number(m.date) : Date.now();
   const isLive = m.live === true || m.status === 'live';
@@ -643,27 +665,36 @@ function normalizeMatch(m, server) {
     teams = {
       home: { 
         ...m.teams.home, 
-        name: decodeHtmlEntities(m.teams.home.name || ''),
+        name: stripEmoji(decodeHtmlEntities(m.teams.home.name || '')),
         badge: formatBadge(m.teams.home.badge)
       },
       away: { 
         ...m.teams.away, 
-        name: decodeHtmlEntities(m.teams.away.name || ''),
+        name: stripEmoji(decodeHtmlEntities(m.teams.away.name || '')),
         badge: formatBadge(m.teams.away.badge)
       }
     };
+  } else if (teams) {
+    // Clean team names in parsed teams too
+    if (teams.home?.name) teams.home.name = stripEmoji(teams.home.name);
+    if (teams.away?.name) teams.away.name = stripEmoji(teams.away.name);
   }
+
+  // If teams are clean and title still has colon, rebuild from teams
+  const finalTitle = (title.includes(':') && teams?.home?.name && teams?.away?.name)
+    ? `${teams.home.name} vs ${teams.away.name}`
+    : title;
 
   const poster = m.poster
     ? (m.poster.startsWith('http') ? m.poster : `${CONFIG.NTV_BASE_URL}${m.poster}`)
-    : generateMatchPoster(title, tournament || category);
+    : generateMatchPoster(finalTitle, tournament || category);
 
   return {
     id,
     rawId,
     server,
     servers: [server],
-    title,
+    title: finalTitle,
     category,
     tournament,
     date,
