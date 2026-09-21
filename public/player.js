@@ -208,12 +208,29 @@ export class UniversalPlayer {
       this.isPlaying = false;
       this.updatePlayState();
     });
+    let waitingTimer = null;
     this.videoEl.addEventListener('waiting', () => {
-      this.showLoading(true, 'Mise en mémoire tampon...');
+      if (waitingTimer) clearTimeout(waitingTimer);
+      waitingTimer = setTimeout(() => {
+        if (this.videoEl.readyState < 3) {
+          this.showLoading(true, 'Mise en mémoire tampon...');
+        }
+      }, 600);
     });
     this.videoEl.addEventListener('playing', () => {
+      if (waitingTimer) clearTimeout(waitingTimer);
       this.showLoading(false);
       this.showError(false);
+    });
+    this.videoEl.addEventListener('canplay', () => {
+      if (waitingTimer) clearTimeout(waitingTimer);
+      this.showLoading(false);
+    });
+    this.videoEl.addEventListener('timeupdate', () => {
+      if (waitingTimer) clearTimeout(waitingTimer);
+      if (this.videoEl.currentTime > 0 && !this.videoEl.paused && this.loadingOverlay && this.loadingOverlay.style.display !== 'none') {
+        this.showLoading(false);
+      }
     });
 
     // Fullscreen
@@ -529,13 +546,26 @@ export class UniversalPlayer {
       // Country code badge or icon
       let badgeHtml = '<i class="ph-bold ph-television broadcaster-icon"></i>';
       const nUpper = grp.name.toUpperCase();
-      if (nUpper.includes('FRANCE') || nUpper.includes('CANAL') || nUpper.includes('RMC') || nUpper.includes('BEIN') || nUpper.includes('TF1') || nUpper.includes('M6')) badgeHtml = '<span class="broadcaster-code-tag">FR</span>';
-      else if (nUpper.includes('UK') || nUpper.includes('TNT') || nUpper.includes('SKY') || nUpper.includes('BBC')) badgeHtml = '<span class="broadcaster-code-tag">UK</span>';
-      else if (nUpper.includes('SPAIN') || nUpper.includes('MOVISTAR')) badgeHtml = '<span class="broadcaster-code-tag">ES</span>';
-      else if (nUpper.includes('PORTUGAL') || nUpper.includes('SPORT TV')) badgeHtml = '<span class="broadcaster-code-tag">PT</span>';
-      else if (nUpper.includes('USA') || nUpper.includes('ESPN') || nUpper.includes('FOX') || nUpper.includes('NBC')) badgeHtml = '<span class="broadcaster-code-tag">US</span>';
-      else if (nUpper.includes('GERMANY')) badgeHtml = '<span class="broadcaster-code-tag">DE</span>';
-      else if (nUpper.includes('ITALY')) badgeHtml = '<span class="broadcaster-code-tag">IT</span>';
+      if (nUpper.includes('PLAYER')) {
+        const pNum = nUpper.match(/PLAYER\s*(\d+)/i);
+        badgeHtml = pNum ? `<span class="broadcaster-code-tag">P${pNum[1]}</span>` : '<i class="ph-bold ph-frame-corners broadcaster-icon"></i>';
+      } else if (nUpper.includes('FLUX HD') || nUpper.includes('DIRECT') || nUpper.includes('CDN')) {
+        badgeHtml = '<i class="ph-bold ph-lightning broadcaster-icon"></i>';
+      } else if (nUpper.includes('FRANCE') || nUpper.includes('CANAL') || nUpper.includes('RMC') || nUpper.includes('BEIN') || nUpper.includes('TF1') || nUpper.includes('M6') || nUpper.includes('ARTE')) {
+        badgeHtml = '<span class="broadcaster-code-tag">FR</span>';
+      } else if (nUpper.includes('UK') || nUpper.includes('TNT') || nUpper.includes('SKY') || nUpper.includes('BBC')) {
+        badgeHtml = '<span class="broadcaster-code-tag">UK</span>';
+      } else if (nUpper.includes('SPAIN') || nUpper.includes('MOVISTAR')) {
+        badgeHtml = '<span class="broadcaster-code-tag">ES</span>';
+      } else if (nUpper.includes('PORTUGAL') || nUpper.includes('SPORT TV')) {
+        badgeHtml = '<span class="broadcaster-code-tag">PT</span>';
+      } else if (nUpper.includes('USA') || nUpper.includes('ESPN') || nUpper.includes('FOX') || nUpper.includes('NBC')) {
+        badgeHtml = '<span class="broadcaster-code-tag">US</span>';
+      } else if (nUpper.includes('GERMANY')) {
+        badgeHtml = '<span class="broadcaster-code-tag">DE</span>';
+      } else if (nUpper.includes('ITALY')) {
+        badgeHtml = '<span class="broadcaster-code-tag">IT</span>';
+      }
 
       bChip.innerHTML = `
         <span class="broadcaster-flag">${badgeHtml}</span>
@@ -593,7 +623,7 @@ export class UniversalPlayer {
         modeTitle = 'Proxy Sécurisé (Anti-Bug / FAI)';
       } else if (isEmbed) {
         icon = 'ph-frame-corners';
-        modeTitle = 'Lecteur Intégré';
+        modeTitle = stream.title ? stream.title.replace(/📺|⚽/g, '').trim() : 'Lecteur Intégré';
       }
 
       modeBtn.innerHTML = `
@@ -767,13 +797,20 @@ export class UniversalPlayer {
     if (window.Hls && window.Hls.isSupported()) {
       this.hls = new window.Hls({
         enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 30,
-        maxBufferLength: 15,
-        maxMaxBufferLength: 30,
-        manifestLoadingTimeOut: 12000,
-        manifestLoadingMaxRetry: 3,
-        levelLoadingTimeOut: 12000
+        lowLatencyMode: false,          // Prevents stuttering and buffering on live IPTV
+        liveSyncDurationCount: 3,       // Stable 3-segment buffer safety window
+        liveMaxLatencyDurationCount: 6, // Prevents falling behind
+        maxBufferLength: 30,            // 30 seconds buffer
+        maxMaxBufferLength: 60,         // Up to 60 seconds buffer
+        maxBufferSize: 60 * 1000 * 1000,// 60MB RAM buffer
+        manifestLoadingTimeOut: 15000,
+        manifestLoadingMaxRetry: 4,
+        manifestLoadingRetryDelay: 1000,
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 4,
+        fragLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 15000,
+        levelLoadingMaxRetry: 4
       });
 
       this.hls.loadSource(streamUrl);
@@ -856,18 +893,23 @@ export class UniversalPlayer {
     // If it was a direct stream and failed, try auto-proxying
     if (!streamUrl.includes('/proxy/hls')) {
       this.showLoading(true, 'Bascule automatique sur le proxy anti-blocage...');
-      const proxyUrl = `/proxy/hls?url=${encodeURIComponent(streamUrl)}&ref=${encodeURIComponent('https://iplayer.is/')}`;
+      // Look for a pre-configured proxy stream in current sources
+      const proxyEntry = this.currentSources.find(s => s.url && s.url.includes('/proxy/hls'));
+      if (proxyEntry) {
+        this.selectSource(this.currentSources.indexOf(proxyEntry));
+        return;
+      }
+      const proxyUrl = `/proxy/hls?url=${encodeURIComponent(streamUrl)}`;
       setTimeout(() => {
         this.playHls(proxyUrl);
-      }, 800);
+      }, 600);
     } else {
-      this.showError(true, 'Flux indisponible', 'Passage à la source suivante disponible.');
-      // Auto-fallback to next source after 2 seconds
+      this.showError(true, 'Flux indisponible', 'Passage à la source suivante disponible...');
       setTimeout(() => {
         if (this.currentSources.length > 1) {
           this.switchToNextSource();
         }
-      }, 2000);
+      }, 1500);
     }
   }
 

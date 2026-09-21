@@ -111,7 +111,7 @@ export async function handleTsProxy(req, res) {
       res.setHeader('Content-Length', contentLength);
     }
 
-    res.setHeader('Content-Type', 'video/mp2t');
+    res.setHeader('Content-Type', upstreamRes.headers.get('content-type') || 'video/mp2t');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
