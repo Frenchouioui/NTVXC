@@ -78,7 +78,8 @@ function decodeEConfig(str) {
 }
 
 /**
- * Dynamically extract live M3U8 from dlive.sx (trying stream, cast, and watch endpoints)
+ * Dynamically extract live M3U8 from dlive.sx
+ * Extracts both primary (Player 1 assetrage.net) and secondary (Player 2 tiestep.top) direct CDN streams
  * Decodes _econfig, Clappr atob, or direct .m3u8 URLs
  */
 export async function fetchDliveRealStream(channelId) {
@@ -91,11 +92,17 @@ export async function fetchDliveRealStream(channelId) {
   }
 
   const dliveBase = 'https://dlive.sx';
-  const playerPaths = ['stream', 'cast', 'watch'];
+  const playerPaths = [
+    { name: 'stream', label: 'Serveur Principal' },
+    { name: 'cast', label: 'Serveur Alternatif' },
+    { name: 'watch', label: 'Serveur Secours' }
+  ];
+
+  const foundStreams = [];
 
   for (const p of playerPaths) {
     try {
-      const playerUrl = `${dliveBase}/${p}/stream-${cleanId}.php`;
+      const playerUrl = `${dliveBase}/${p.name}/stream-${cleanId}.php`;
       const res1 = await fetch(playerUrl, {
         signal: AbortSignal.timeout(4000),
         headers: {
@@ -126,11 +133,15 @@ export async function fetchDliveRealStream(channelId) {
       if (econfigMatch) {
         const config = decodeEConfig(econfigMatch[1]);
         const streamUrl = config.stream_url || config.stream_url_nop2p;
-        if (streamUrl) {
-          const origin = new URL(embedUrl).origin + '/';
-          const data = { streamUrl, referer: origin };
-          dliveStreamCache.set(cleanId, { data, time: Date.now() });
-          return data;
+        if (streamUrl && !foundStreams.some(s => s.streamUrl === streamUrl)) {
+          foundStreams.push({
+            label: p.label,
+            streamUrl,
+            referer: embedUrl
+          });
+          // If we found both primary and secondary, that's enough
+          if (foundStreams.length >= 2) break;
+          continue;
         }
       }
 
@@ -140,26 +151,42 @@ export async function fetchDliveRealStream(channelId) {
       if (atobMatch) {
         try {
           const decodedUrl = Buffer.from(atobMatch[1], 'base64').toString('utf8');
-          if (decodedUrl.includes('.m3u8')) {
-            const origin = new URL(embedUrl).origin + '/';
-            const data = { streamUrl: decodedUrl, referer: origin };
-            dliveStreamCache.set(cleanId, { data, time: Date.now() });
-            return data;
+          if (decodedUrl.includes('.m3u8') && !foundStreams.some(s => s.streamUrl === decodedUrl)) {
+            foundStreams.push({
+              label: p.label,
+              streamUrl: decodedUrl,
+              referer: embedUrl
+            });
+            if (foundStreams.length >= 2) break;
+            continue;
           }
         } catch {}
       }
 
       // 3. Check for direct .m3u8 in html
       const m3u8Match = html2.match(/https?:\/\/[^'"\s<>]+\.m3u8[^'"\s<>]*/i);
-      if (m3u8Match) {
-        const origin = new URL(embedUrl).origin + '/';
-        const data = { streamUrl: m3u8Match[0], referer: origin };
-        dliveStreamCache.set(cleanId, { data, time: Date.now() });
-        return data;
+      if (m3u8Match && !foundStreams.some(s => s.streamUrl === m3u8Match[0])) {
+        foundStreams.push({
+          label: p.label,
+          streamUrl: m3u8Match[0],
+          referer: embedUrl
+        });
+        if (foundStreams.length >= 2) break;
       }
     } catch (e) {
       // Try next player path
     }
+  }
+
+  if (foundStreams.length > 0) {
+    const primary = foundStreams[0];
+    const data = {
+      streamUrl: primary.streamUrl,
+      referer: primary.referer,
+      streams: foundStreams
+    };
+    dliveStreamCache.set(cleanId, { data, time: Date.now() });
+    return data;
   }
 
   return null;
@@ -167,7 +194,7 @@ export async function fetchDliveRealStream(channelId) {
 
 /**
  * Resolver for DaddyLive / DLHD / DLive channels
- * Returns direct HLS, proxy HLS, and all 6 DLive native players
+ * Pure high-definition direct HLS streams and anti-bug proxy (NO broken third-party iframes)
  */
 export async function resolveDlhd(channelId, baseUrl, labelPrefix = 'DLHD') {
   const streams = [];
@@ -177,50 +204,35 @@ export async function resolveDlhd(channelId, baseUrl, labelPrefix = 'DLHD') {
 
   const dliveBase = 'https://dlive.sx';
 
-  // 1. Try dynamic real DLive stream extraction first
-  const realStream = await fetchDliveRealStream(cleanId);
-  if (realStream && realStream.streamUrl) {
-    // Direct HLS CDN
-    streams.push({
-      name: `NTVio • ${labelPrefix}`,
-      title: `⚡ Flux HD Direct [CDN]`,
-      url: realStream.streamUrl,
-      behaviorHints: { notWebReady: false }
-    });
+  // 1. Extract live HLS streams dynamically (Player 1 + Player 2)
+  const dliveData = await fetchDliveRealStream(cleanId);
+  if (dliveData && dliveData.streams && dliveData.streams.length > 0) {
+    dliveData.streams.forEach((st, idx) => {
+      const isPrimary = idx === 0;
+      const sName = isPrimary ? 'Serveur Principal' : `Serveur Alternatif ${idx > 1 ? idx : ''}`.trim();
 
-    // Proxy HLS (Essential for CORS & Referer protection)
-    if (baseUrl) {
-      const proxyUrl = `${baseUrl}/proxy/hls?url=${encodeURIComponent(realStream.streamUrl)}&ref=${encodeURIComponent(realStream.referer)}`;
+      // 1. Proxy HLS (Essential for CORS & Referer protection, plays instantly everywhere)
+      if (baseUrl) {
+        const proxyUrl = `${baseUrl}/proxy/hls?url=${encodeURIComponent(st.streamUrl)}&ref=${encodeURIComponent(st.referer)}`;
+        streams.push({
+          name: `NTVio • ${labelPrefix} (Proxy)`,
+          title: `🛡️ ${sName} [Proxy Anti-Bug]`,
+          url: proxyUrl,
+          behaviorHints: { notWebReady: false }
+        });
+      }
+
+      // 2. Direct HLS CDN
       streams.push({
-        name: `NTVio • ${labelPrefix} (Proxy)`,
-        title: `🛡️ Flux HD Direct [Proxy Anti-Bug]`,
-        url: proxyUrl,
+        name: `NTVio • ${labelPrefix} [${sName}]`,
+        title: `⚡ ${sName} [CDN HD]`,
+        url: st.streamUrl,
         behaviorHints: { notWebReady: false }
       });
-    }
-  }
-
-  // 2. Add ALL 6 Native DLive Players (Identical to dlive.sx / watch.php?id=...)
-  const dlivePlayers = [
-    { title: 'Player 1 (Principal)', path: 'stream' },
-    { title: 'Player 2 (Cast)', path: 'cast' },
-    { title: 'Player 3 (Watch)', path: 'watch' },
-    { title: 'Player 4 (Plus)', path: 'plus' },
-    { title: 'Player 5 (Casting)', path: 'casting' },
-    { title: 'Player 6 (Player)', path: 'player' }
-  ];
-
-  for (const p of dlivePlayers) {
-    streams.push({
-      name: `DLive • ${p.title}`,
-      title: `📺 ${p.title}`,
-      url: `${dliveBase}/${p.path}/stream-${cleanId}.php`,
-      isEmbed: true,
-      behaviorHints: { notWebReady: false }
     });
   }
 
-  // 3. Web player fallback (opens official DLive watch page)
+  // 2. Official DLive Web player link (opens clean watch page in new tab)
   streams.push({
     name: `DLive.sx • [Officiel]`,
     title: `🌐 DLive.sx Officiel: #${cleanId} ↗`,
@@ -456,50 +468,30 @@ export async function resolveMatchStream(matchId, baseUrl) {
 
     if (chId && chId !== '00') {
       const realDlive = await fetchDliveRealStream(chId);
-      if (realDlive && realDlive.streamUrl) {
-        if (baseUrl) {
+      if (realDlive && realDlive.streams && realDlive.streams.length > 0) {
+        realDlive.streams.forEach((st, sIdx) => {
+          const isPrimary = sIdx === 0;
+          const sLabel = isPrimary ? 'Principal' : 'Alternatif';
+
+          if (baseUrl) {
+            sourceStreams.push({
+              name: `NTVio • [${serverName}] (Proxy)`,
+              title: `🛡️ Source ${sourceIndex}: ${label} [Proxy Anti-Bug ${sLabel}]`,
+              url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(st.streamUrl)}&ref=${encodeURIComponent(st.referer)}`,
+              behaviorHints: { notWebReady: false }
+            });
+          }
+
           sourceStreams.push({
-            name: `NTVio • [${serverName}] (Proxy)`,
-            title: `🛡️ Source ${sourceIndex}: ${label} [Proxy Anti-Bug]`,
-            url: `${baseUrl}/proxy/hls?url=${encodeURIComponent(realDlive.streamUrl)}&ref=${encodeURIComponent(realDlive.referer)}`,
+            name: `NTVio • [${serverName}]`,
+            title: `⚽ Source ${sourceIndex}: ${label} [Direct CDN ${sLabel}]`,
+            url: st.streamUrl,
             behaviorHints: { notWebReady: false }
           });
-        }
-
-        sourceStreams.push({
-          name: `NTVio • [${serverName}] (Direct)`,
-          title: `⚽ Source ${sourceIndex}: ${label} [Direct CDN]`,
-          url: realDlive.streamUrl,
-          behaviorHints: { notWebReady: false }
         });
       }
 
-      // Add native DLive player embeds
-      sourceStreams.push({
-        name: `NTVio • [${serverName}] (Player 1)`,
-        title: `📺 Source ${sourceIndex}: ${label} [Player 1]`,
-        url: `https://dlive.sx/stream/stream-${chId}.php`,
-        isEmbed: true,
-        behaviorHints: { notWebReady: false }
-      });
-
-      sourceStreams.push({
-        name: `NTVio • [${serverName}] (Player 2)`,
-        title: `📺 Source ${sourceIndex}: ${label} [Player 2]`,
-        url: `https://dlive.sx/cast/stream-${chId}.php`,
-        isEmbed: true,
-        behaviorHints: { notWebReady: false }
-      });
-
-      sourceStreams.push({
-        name: `NTVio • [${serverName}] (Player 3)`,
-        title: `📺 Source ${sourceIndex}: ${label} [Player 3]`,
-        url: `https://dlive.sx/watch/stream-${chId}.php`,
-        isEmbed: true,
-        behaviorHints: { notWebReady: false }
-      });
-
-      // Legitimate official watch page on DLive
+      // Legitimate official watch page on DLive (clean external tab)
       sourceStreams.push({
         name: `DLive.sx • [Officiel]`,
         title: `🌐 DLive.sx Officiel: ${label} ↗`,
@@ -568,6 +560,14 @@ export async function resolveMatchStream(matchId, baseUrl) {
           name: `NTVio • [${serverName}]`,
           title: `⚽ Source ${sourceIndex}: ${label} [Direct M3U8]`,
           url: sourceUrl
+        });
+      } else if (sourceUrl.includes('embedindia.st') || sourceUrl.includes('embed.st')) {
+        sourceStreams.push({
+          name: `NTVio • [${serverName}]`,
+          title: `⚽ Source ${sourceIndex}: ${label} [Lecteur Intégré]`,
+          url: sourceUrl,
+          isEmbed: true,
+          behaviorHints: { notWebReady: false }
         });
       } else {
         const cleanWatchUrl = sourceUrl

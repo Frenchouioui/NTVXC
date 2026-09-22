@@ -12,6 +12,14 @@ function decodeUrlParam(raw) {
   return str;
 }
 
+function getOriginFromReferer(ref) {
+  try {
+    return new URL(ref).origin;
+  } catch {
+    return CONFIG.NTV_BASE_URL;
+  }
+}
+
 /**
  * Handle HLS playlist proxying and segment URL rewriting
  */
@@ -28,7 +36,7 @@ export async function handleHlsProxy(req, res) {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': referer,
-        'Origin': new URL(referer).origin
+        'Origin': getOriginFromReferer(referer)
       }
     });
 
@@ -98,7 +106,7 @@ export async function handleTsProxy(req, res) {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': referer,
-        'Origin': new URL(referer).origin
+        'Origin': getOriginFromReferer(referer)
       }
     });
 

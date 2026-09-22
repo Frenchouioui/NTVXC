@@ -549,8 +549,8 @@ export class UniversalPlayer {
       if (nUpper.includes('PLAYER')) {
         const pNum = nUpper.match(/PLAYER\s*(\d+)/i);
         badgeHtml = pNum ? `<span class="broadcaster-code-tag">P${pNum[1]}</span>` : '<i class="ph-bold ph-frame-corners broadcaster-icon"></i>';
-      } else if (nUpper.includes('FLUX HD') || nUpper.includes('DIRECT') || nUpper.includes('CDN')) {
-        badgeHtml = '<i class="ph-bold ph-lightning broadcaster-icon"></i>';
+      } else if (nUpper.includes('FLUX HD') || nUpper.includes('DIRECT') || nUpper.includes('CDN') || nUpper.includes('PRINCIPAL') || nUpper.includes('ALTERNATIF') || nUpper.includes('SERVEUR')) {
+        badgeHtml = '<i class="ph-bold ph-broadcast broadcaster-icon"></i>';
       } else if (nUpper.includes('FRANCE') || nUpper.includes('CANAL') || nUpper.includes('RMC') || nUpper.includes('BEIN') || nUpper.includes('TF1') || nUpper.includes('M6') || nUpper.includes('ARTE')) {
         badgeHtml = '<span class="broadcaster-code-tag">FR</span>';
       } else if (nUpper.includes('UK') || nUpper.includes('TNT') || nUpper.includes('SKY') || nUpper.includes('BBC')) {
