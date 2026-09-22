@@ -15,9 +15,9 @@ const DEFAULT_MIRRORS = {
     active: 'https://dlive.sx',
     mirrors: [
       'https://dlive.sx',
-      'https://dlhd.so',
-      'https://daddylive.mp',
-      'https://dlhd.sx'
+      'https://dlhd.st',
+      'https://dlhd.pk',
+      'https://dlstreams.st'
     ]
   },
   ntv: {

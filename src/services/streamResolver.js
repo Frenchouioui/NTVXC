@@ -91,7 +91,8 @@ export async function fetchDliveRealStream(channelId) {
     return cached.data;
   }
 
-  const dliveBase = 'https://dlive.sx';
+  const dliveMirrors = [getActiveMirror('dlive'), 'https://dlhd.st', 'https://dlhd.pk', 'https://dlstreams.st'];
+  const uniqueMirrors = [...new Set(dliveMirrors.filter(Boolean))];
   const playerPaths = [
     { name: 'stream', label: 'Serveur Principal' },
     { name: 'cast', label: 'Serveur Alternatif' },
@@ -100,18 +101,21 @@ export async function fetchDliveRealStream(channelId) {
 
   const foundStreams = [];
 
-  for (const p of playerPaths) {
-    try {
-      const playerUrl = `${dliveBase}/${p.name}/stream-${cleanId}.php`;
-      const res1 = await fetch(playerUrl, {
-        signal: AbortSignal.timeout(4000),
-        headers: {
-          'User-Agent': CONFIG.USER_AGENT,
-          'Referer': `${dliveBase}/watch.php?id=${cleanId}`
-        }
-      });
-      if (!res1.ok) continue;
-      const html1 = await res1.text();
+  for (const dliveBase of uniqueMirrors) {
+    if (foundStreams.length >= 2) break;
+
+    for (const p of playerPaths) {
+      try {
+        const playerUrl = `${dliveBase}/${p.name}/stream-${cleanId}.php`;
+        const res1 = await fetch(playerUrl, {
+          signal: AbortSignal.timeout(7000),
+          headers: {
+            'User-Agent': CONFIG.USER_AGENT,
+            'Referer': `${dliveBase}/watch.php?id=${cleanId}`
+          }
+        });
+        if (!res1.ok) continue;
+        const html1 = await res1.text();
 
       // Find any iframe pointing to an embed server (assetrage.net, tiestep.top, hamis, etc.)
       const iframeMatch = html1.match(/<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i);
@@ -177,6 +181,7 @@ export async function fetchDliveRealStream(channelId) {
       // Try next player path
     }
   }
+}
 
   if (foundStreams.length > 0) {
     const primary = foundStreams[0];
