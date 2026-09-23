@@ -91,31 +91,27 @@ export async function fetchDliveRealStream(channelId) {
     return cached.data;
   }
 
-  const dliveMirrors = [getActiveMirror('dlive'), 'https://dlhd.st', 'https://dlhd.pk', 'https://dlstreams.st'];
-  const uniqueMirrors = [...new Set(dliveMirrors.filter(Boolean))];
+  const dliveBase = getActiveMirror('dlive') || 'https://dlive.sx';
   const playerPaths = [
     { name: 'stream', label: 'Serveur Principal' },
-    { name: 'cast', label: 'Serveur Alternatif' },
-    { name: 'watch', label: 'Serveur Secours' }
+    { name: 'cast', label: 'Serveur Alternatif' }
   ];
 
   const foundStreams = [];
 
-  for (const dliveBase of uniqueMirrors) {
+  for (const p of playerPaths) {
     if (foundStreams.length >= 2) break;
-
-    for (const p of playerPaths) {
-      try {
-        const playerUrl = `${dliveBase}/${p.name}/stream-${cleanId}.php`;
-        const res1 = await fetch(playerUrl, {
-          signal: AbortSignal.timeout(7000),
-          headers: {
-            'User-Agent': CONFIG.USER_AGENT,
-            'Referer': `${dliveBase}/watch.php?id=${cleanId}`
-          }
-        });
-        if (!res1.ok) continue;
-        const html1 = await res1.text();
+    try {
+      const playerUrl = `${dliveBase}/${p.name}/stream-${cleanId}.php`;
+      const res1 = await fetch(playerUrl, {
+        signal: AbortSignal.timeout(2500),
+        headers: {
+          'User-Agent': CONFIG.USER_AGENT,
+          'Referer': `${dliveBase}/watch.php?id=${cleanId}`
+        }
+      });
+      if (!res1.ok) continue;
+      const html1 = await res1.text();
 
       // Find any iframe pointing to an embed server (assetrage.net, tiestep.top, hamis, etc.)
       const iframeMatch = html1.match(/<iframe[^>]+src=["'](https?:\/\/[^"']+)["']/i);
@@ -123,7 +119,7 @@ export async function fetchDliveRealStream(channelId) {
       const embedUrl = iframeMatch[1];
 
       const res2 = await fetch(embedUrl, {
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(2500),
         headers: {
           'User-Agent': CONFIG.USER_AGENT,
           'Referer': playerUrl
@@ -181,7 +177,6 @@ export async function fetchDliveRealStream(channelId) {
       // Try next player path
     }
   }
-}
 
   if (foundStreams.length > 0) {
     const primary = foundStreams[0];
@@ -413,11 +408,20 @@ export async function resolveHesgoal(channelId, baseUrl) {
   return streams;
 }
 
+const matchStreamCache = new Map();
+const MATCH_STREAM_CACHE_TTL = 45 * 1000; // 45s cache for resolved match streams
+
 /**
  * Resolver for Live Sports Match events (NTV & DLive)
  * ENSURES ALL SOURCES ARE SHOWN AND ACCURATELY RESOLVED!
  */
 export async function resolveMatchStream(matchId, baseUrl) {
+  const cacheKey = `${matchId}_${baseUrl || ''}`;
+  const cached = matchStreamCache.get(cacheKey);
+  if (cached && (Date.now() - cached.time) < MATCH_STREAM_CACHE_TTL) {
+    return cached.streams;
+  }
+
   const { getMatchById } = await import('./ntvApi.js');
   const match = await getMatchById(matchId);
 
@@ -425,13 +429,21 @@ export async function resolveMatchStream(matchId, baseUrl) {
     return [];
   }
 
-  // Resolve all sources in parallel via Promise.allSettled
+  // Helper with per-source timeout to prevent slow sources from delaying others
+  const withTimeout = (promise, ms = 3500) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Source timeout')), ms))
+    ]);
+
+  // Resolve all sources in parallel via Promise.allSettled with timeout
   const sourcePromises = match.sources.map(async (src, i) => {
-    const sourceStreams = [];
-    const sourceUrl = src.url || '';
-    const label = src.channelName || (src.source ? `${src.source.toUpperCase()} ${src.id || ''}` : `Source ${i + 1}`);
-    const serverName = (src.server || match.server || 'Server').toUpperCase();
-    const sourceIndex = i + 1;
+    return withTimeout((async () => {
+      const sourceStreams = [];
+      const sourceUrl = src.url || '';
+      const label = src.channelName || (src.source ? `${src.source.toUpperCase()} ${src.id || ''}` : `Source ${i + 1}`);
+      const serverName = (src.server || match.server || 'Server').toUpperCase();
+      const sourceIndex = i + 1;
 
     // 1. Direct M3U8 inside query parameter or URL (e.g. Falcon / livelive24 feeds)
     if (sourceUrl.includes('.m3u8') || sourceUrl.includes('url=') || sourceUrl.includes('livelive24')) {
@@ -589,6 +601,7 @@ export async function resolveMatchStream(matchId, baseUrl) {
     }
 
     return sourceStreams;
+    })(), 3500).catch(() => []);
   });
 
   const settled = await Promise.allSettled(sourcePromises);
@@ -600,13 +613,16 @@ export async function resolveMatchStream(matchId, baseUrl) {
   }
 
   // Sort: All Direct in-app streams FIRST, all external web links / redirects LAST
-  return streams.sort((a, b) => {
+  const sorted = streams.sort((a, b) => {
     const aExt = !!a.externalUrl;
     const bExt = !!b.externalUrl;
     if (!aExt && bExt) return -1;
     if (aExt && !bExt) return 1;
     return 0;
   });
+
+  matchStreamCache.set(cacheKey, { streams: sorted, time: Date.now() });
+  return sorted;
 }
 
 export function extractDirectM3u8(wrapperUrl) {

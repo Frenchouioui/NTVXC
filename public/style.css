@@ -3497,3 +3497,20 @@ body.in-fullscreen .video-container .player-controls,
   justify-content: center;
 }
 
+/* Spinner and Instant Card Action Feedback */
+.spinner-rotate {
+  display: inline-block;
+  animation: spin 0.75s linear infinite !important;
+}
+
+.btn-play-match.loading {
+  opacity: 0.9 !important;
+  cursor: wait !important;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1) !important;
+}
+
+

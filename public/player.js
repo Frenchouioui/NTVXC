@@ -398,6 +398,42 @@ export class UniversalPlayer {
   }
 
   /**
+   * Immediately show player with preloading / connecting state
+   */
+  showPreloading(item) {
+    this.currentItem = item;
+    if (item.teams && item.teams.home && item.teams.away) {
+      const hBadge = item.teams.home.badge ? `<img src="${item.teams.home.badge}" class="player-team-mini-badge" alt="">` : '';
+      const aBadge = item.teams.away.badge ? `<img src="${item.teams.away.badge}" class="player-team-mini-badge" alt="">` : '';
+      this.playerTitle.innerHTML = `${hBadge}<span>${item.teams.home.name}</span> <span class="player-vs-badge">VS</span> ${aBadge}<span>${item.teams.away.name}</span>`;
+    } else {
+      this.playerTitle.textContent = item.title || item.name || 'Événement en direct';
+    }
+    this.playerCategory.textContent = (item.category || item.country || 'Live').toUpperCase();
+    this.playerSubtitle.textContent = 'Connexion aux diffuseurs et analyse des flux HD...';
+
+    // Show loading overlay immediately
+    this.showLoading(true, 'Connexion aux flux haute définition...');
+    this.showError(false);
+    if (this.sourcesPanel) this.sourcesPanel.style.display = 'none';
+
+    // Pause/clean previous video or iframe
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+    if (this.videoEl) {
+      this.videoEl.pause();
+      this.videoEl.removeAttribute('src');
+      this.videoEl.load();
+    }
+    if (this.iframeEl) {
+      this.iframeEl.style.display = 'none';
+      this.iframeEl.src = 'about:blank';
+    }
+  }
+
+  /**
    * Load an entire Match or Channel item into the player
    */
   async loadItem(item, streams = []) {

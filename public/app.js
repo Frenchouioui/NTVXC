@@ -738,27 +738,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 6. SELECT AND PLAY ITEM (MATCH OR CHANNEL) ---
   async function selectItem(id, sync = true) {
+    if (!id) return;
     state.activeItemId = id;
     if (sync) syncUrl(true);
 
-    // Highlight active card
+    // 1. Immediately highlight card and show active loading spinner on the button
+    const targetCard = document.querySelector(`[data-id="${id}"]`);
     document.querySelectorAll('.match-card, .channel-card').forEach(card => {
-      card.classList.toggle('selected', card.getAttribute('data-id') === id);
+      const isThis = card.getAttribute('data-id') === id;
+      card.classList.toggle('selected', isThis);
+      const playBtn = card.querySelector('.btn-play-match');
+      if (playBtn) {
+        if (isThis) {
+          playBtn.classList.add('loading');
+          playBtn.innerHTML = '<i class="ph-bold ph-spinner spinner-rotate"></i> <span>Connexion...</span>';
+        } else {
+          playBtn.classList.remove('loading');
+          const isLive = card.classList.contains('card-live');
+          playBtn.innerHTML = `<i class="ph-bold ph-play"></i> <span>${isLive ? 'Regarder' : 'Accéder'}</span>`;
+        }
+      }
     });
+
+    // 2. Find metadata from cache or DOM for instantaneous preloading
+    const cachedMatch = (state.cachedMatches || []).find(m => m.id === id || (m.allIds && m.allIds.includes(id)));
+    const cachedFav = (state.favorites || []).find(f => f.id === id);
+    const fallbackTitle = targetCard?.querySelector('.match-card-body, .channel-name')?.textContent?.trim() || 'Diffusion en Direct';
+    const itemData = cachedMatch || cachedFav || { id, title: fallbackTitle, category: 'En Direct' };
+
+    // 3. Immediately reveal player and smoothly scroll to it!
+    if (playerSection) {
+      playerSection.style.display = 'block';
+      playerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (player && typeof player.showPreloading === 'function') {
+      player.showPreloading(itemData);
+    }
 
     try {
       const res = await fetch(`/api/stream/${encodeURIComponent(id)}`);
       const data = await res.json();
 
-      if (!data.success || !data.item) {
-        showToast('Impossible de récupérer les flux pour cet élément');
-        return;
+      // Reset card loading button
+      if (targetCard) {
+        const playBtn = targetCard.querySelector('.btn-play-match');
+        if (playBtn) {
+          playBtn.classList.remove('loading');
+          const isLive = targetCard.classList.contains('card-live');
+          playBtn.innerHTML = `<i class="ph-bold ph-play"></i> <span>${isLive ? 'Regarder' : 'Accéder'}</span>`;
+        }
       }
 
-      // Reveal player smoothly on demand
-      if (playerSection) {
-        playerSection.style.display = 'block';
-        playerSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!data.success || !data.item || (!data.streams || !data.streams.length)) {
+        if (player) {
+          player.showError(true, 'Aucun flux disponible pour cet événement', 'Les diffuseurs n\'ont pas encore ouvert leur flux en direct. Réessayez dans un instant.');
+        } else {
+          showToast('Impossible de récupérer les flux pour cet élément');
+        }
+        return;
       }
 
       await player.loadItem(data.item, data.streams || []);
@@ -776,7 +813,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (e) {
       console.error('Error fetching stream for item:', e);
-      showToast('Erreur de connexion au serveur');
+      if (targetCard) {
+        const playBtn = targetCard.querySelector('.btn-play-match');
+        if (playBtn) {
+          playBtn.classList.remove('loading');
+          const isLive = targetCard.classList.contains('card-live');
+          playBtn.innerHTML = `<i class="ph-bold ph-play"></i> <span>${isLive ? 'Regarder' : 'Accéder'}</span>`;
+        }
+      }
+      if (player) {
+        player.showError(true, 'Erreur de connexion au serveur', 'Vérifiez votre connexion ou réessayez dans un instant.');
+      } else {
+        showToast('Erreur de connexion au serveur');
+      }
     }
   }
 

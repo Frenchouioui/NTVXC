@@ -292,6 +292,11 @@ export async function getMatchesStats() {
  * Get a single match by ID
  */
 export async function getMatchById(id) {
+  // If match exists in current cache, return immediately (0ms)
+  let found = matchesCache.all.find(m => m.id === id || (m.allIds && m.allIds.includes(id)));
+  if (found) return found;
+
+  // Otherwise, refresh matches cache and search again
   const matches = await getMatches();
   return matches.find(m => m.id === id || (m.allIds && m.allIds.includes(id))) || null;
 }
