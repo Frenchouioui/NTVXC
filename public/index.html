@@ -6,10 +6,10 @@
   <title>NTVio Live • Matchs en Direct & Chaînes TV 24/7</title>
   <meta name="description" content="Regardez tous les matchs de sport en direct et plus de 3 400 chaînes de télévision mondiales sans coupure avec le lecteur haute performance NTVio Live.">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
-  <!-- Google Fonts: Inter Tight (Display), Inter (Body), JetBrains Mono (Tech/Meta) -->
+  <!-- Google Fonts: Outfit (Display), DM Sans (Body), JetBrains Mono (Tech/Meta) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Phosphor Icons -->
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
@@ -29,7 +29,7 @@
         <a href="/" class="brand-badge">
           <div class="brand-logo-wrap">
             <img src="/logo.svg" alt="NTVio Logo" width="36" height="36">
-            <span class="live-dot-pulse"></span>
+            <span class="brand-status-dot"></span>
           </div>
           <div class="brand-text">
             <span class="brand-name">NTV<span>io</span></span>
@@ -42,7 +42,7 @@
           <button type="button" class="nav-tab active" data-tab="sports">
             <i class="ph-bold ph-soccer-ball"></i>
             <span>Matchs en Direct</span>
-            <span class="tab-badge" id="liveMatchBadge"><span class="live-dot-mini"></span> LIVE</span>
+            <span class="tab-badge" id="liveMatchBadge"><span class="live-dot-static"></span> LIVE</span>
           </button>
           <button type="button" class="nav-tab" data-tab="tv">
             <i class="ph-bold ph-television"></i>
@@ -77,7 +77,7 @@
       <!-- Right: Live stats pill & quick actions -->
       <div class="header-right">
         <div class="stats-pill" id="statsPill">
-          <span class="live-dot-mini"></span>
+          <span class="live-dot-static"></span>
           <span id="statsLiveText">Chargement...</span>
         </div>
         <a href="/admin" class="btn-admin-header" title="Gestion des Miroirs & Diagnostics">
@@ -91,7 +91,7 @@
   <!-- Broadcast Live Marquee Ticker (DLive style) -->
   <div class="live-marquee-bar" id="liveMarqueeBar" style="display: none;">
     <div class="marquee-tag">
-      <span class="live-pulse-dot"></span>
+      <span class="live-tag-dot"></span>
       <span>EN DIRECT</span>
     </div>
     <div class="marquee-track-wrap">
