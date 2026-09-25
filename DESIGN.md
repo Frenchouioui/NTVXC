@@ -22,8 +22,10 @@ colors:
   amber-light: "#fde68a"
   accent-purple: "#a855f7"
   purple-light: "#e9d5ff"
+  purple-badge: "#d8b4fe"
   accent-red: "#ef4444"
   red-light: "#fca5a5"
+  red-live: "#f87171"
   red-subtle: "rgba(239, 68, 68, 0.18)"
   indigo-300: "#a5b4fc"
   overlay-dark: "rgba(0, 0, 0, 0.4)"
@@ -34,6 +36,12 @@ colors:
   text-muted: "#64748b"
   text-subtle: "#475569"
   slate-light: "#cbd5e1"
+  slate-lighter: "#e2e8f0"
+  sky-light: "#7dd3fc"
+  orange-light: "#fdba74"
+  green-light: "#86efac"
+  pink-light: "#f472b6"
+  yellow-light: "#fde047"
 typography:
   display:
     fontFamily: "'Outfit', system-ui, sans-serif"
@@ -47,6 +55,7 @@ typography:
     fontFamily: "'JetBrains Mono', monospace"
     fontWeight: 500
 rounded:
+  2xs: "3px"
   xs: "4px"
   sm: "6px"
   md: "10px"

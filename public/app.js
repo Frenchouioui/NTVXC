@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
-    return skeletons;
+    return `<div class="matches-subgrid">${skeletons}</div>`;
   }
 
   async function loadMatches(isSilent = false) {
@@ -1006,6 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
     globalSearchInput.addEventListener('input', () => {
       const q = globalSearchInput.value.trim();
       searchClearBtn.style.display = q ? 'block' : 'none';
+      globalSearchInput.closest('.search-bar-wrap')?.classList.toggle('has-value', !!q);
       state.globalSearchQuery = q;
 
       clearTimeout(globalDebounce);
@@ -1047,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchClearBtn.addEventListener('click', () => {
       globalSearchInput.value = '';
       searchClearBtn.style.display = 'none';
+      globalSearchInput.closest('.search-bar-wrap')?.classList.remove('has-value');
       state.globalSearchQuery = '';
       hideSearchDropdown();
       if (state.currentTab === 'sports') loadMatches();
