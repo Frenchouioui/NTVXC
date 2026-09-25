@@ -564,7 +564,7 @@
           Testez l'extraction en temps réel d'un flux M3U8 déchiffré pour vérifier que le miroir actif résout parfaitement les diffuseurs.
         </p>
         <form class="tester-form" id="streamTesterForm">
-          <input type="text" class="input-field" id="testStreamId" placeholder="ID de la chaîne ou match (ex: ntv-dlive-31 pour Canal+, ntv-dlive-51 pour Sky Sports...)" value="ntv-dlive-31" required>
+          <input type="text" class="input-field" id="testStreamId" placeholder="ex: ntv-dlive-31" value="ntv-dlive-31" required>
           <button type="submit" class="btn-primary" id="runTestBtn">
             <i class="ph-bold ph-play"></i>
             <span>Lancer le Test d'Extraction</span>
@@ -637,7 +637,7 @@
             ${rowsHtml}
           </div>
           <form class="add-mirror-form" data-service="${key}">
-            <input type="url" class="input-field" placeholder="Ajouter une nouvelle URL miroir (ex: https://...)" required>
+            <input type="url" class="input-field" placeholder="https://..." required>
             <button type="submit" class="btn-secondary btn-sm"><i class="ph-bold ph-plus"></i> Ajouter Miroir</button>
           </form>
         `;

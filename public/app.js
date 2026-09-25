@@ -314,8 +314,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     marqueeBar.style.display = 'flex';
-    // Duplicate list slightly to allow smooth continuous marquee scrolling
-    const displayList = [...liveList.slice(0, 15), ...liveList.slice(0, 15)];
+    // Ensure sufficient items for smooth seamless 50% infinite translation
+    let displayList = liveList.slice(0, 20);
+    while (displayList.length < 12 && displayList.length > 0) {
+      displayList = [...displayList, ...displayList];
+    }
+    // Duplicate for seamless 50% loop
+    displayList = [...displayList, ...displayList];
+
+    // Compute comfortable animation duration based on item count
+    const duration = Math.max(35, Math.min(120, displayList.length * 2.2));
+    marqueeTrack.style.animationDuration = `${duration}s`;
+
     marqueeTrack.innerHTML = displayList.map(m => {
       const srcCount = Array.isArray(m.sources) ? m.sources.length : 1;
       return `
