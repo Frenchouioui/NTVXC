@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load live matches preview
   async function loadLiveMatches() {
+    if (!matchesGrid) return;
     try {
       const res = await fetch('/api/live-matches');
       if (!res.ok) throw new Error('API error');

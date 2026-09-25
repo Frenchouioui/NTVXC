@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     channelsLimit: 60,
     channelsTotal: 0,
     channelsHasMore: false,
-    favorites: JSON.parse(localStorage.getItem('ntvio_favorites') || '[]'),
+    favorites: getStoredFavorites(),
     cachedMatches: [],
     activeItemId: null,
     scheduleDate: 'today',
@@ -840,12 +840,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 7. FAVORITES SYSTEM ---
-  function isFavorite(id) {
-    return state.favorites.some(f => f.id === id);
+  function normalizeFav(f) {
+    if (!f) return null;
+    if (typeof f === 'string') return { id: f, title: f, name: f };
+    const id = f.id || f._id || f.streamId || '';
+    if (!id) return null;
+    return {
+      ...f,
+      id: String(id),
+      title: f.title || f.name || String(id)
+    };
   }
 
-  function toggleFavorite(item) {
-    const idx = state.favorites.findIndex(f => f.id === item.id);
+  function getStoredFavorites() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ntvio_favorites') || '[]');
+      if (!Array.isArray(raw)) return [];
+      return raw.map(normalizeFav).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  function isFavorite(id) {
+    if (!id) return false;
+    const strId = String(id);
+    return state.favorites.some(f => f && String(f.id) === strId);
+  }
+
+  function toggleFavorite(rawItem) {
+    const item = normalizeFav(rawItem);
+    if (!item || !item.id) return;
+    const idx = state.favorites.findIndex(f => f && String(f.id) === String(item.id));
     const itemName = item.title || item.name || 'Élément';
     let isNowFav = false;
 
@@ -879,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateFavoritesBadge() {
-    const count = state.favorites.length;
+    const count = (state.favorites || []).length;
     if (favCountBadge) {
       favCountBadge.textContent = count;
       favCountBadge.style.display = count > 0 ? 'inline-block' : 'none';
@@ -892,7 +918,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderFavorites() {
     updateFavoritesBadge();
 
-    if (!state.favorites.length) {
+    const validFavs = (state.favorites || []).map(normalizeFav).filter(Boolean);
+    state.favorites = validFavs;
+
+    if (!validFavs.length) {
       favoritesGrid.innerHTML = `
         <div class="empty-state-box">
           <i class="ph-bold ph-heart empty-icon" style="color: #f43f5e;"></i>
@@ -903,16 +932,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    favoritesGrid.innerHTML = state.favorites.map(item => {
-      const isMatch = item.id.includes('match');
-      const title = item.title || item.name;
+    favoritesGrid.innerHTML = validFavs.map(item => {
+      const isMatch = (item.id && String(item.id).includes('match')) || item.type === 'match';
+      const title = item.title || item.name || item.id;
       const subtitle = isMatch ? (item.category || 'Sports') : (item.country ? `Pays: ${item.country}` : 'Chaîne 24/7');
 
       return `
-        <div class="fav-card" data-id="${item.id}">
+        <div class="fav-card" data-id="${escapeHtml(item.id)}">
           <div class="fav-card-poster">
             <img src="${item.poster || '/logo.svg'}" alt="${escapeHtml(title)}" loading="lazy">
-            <button type="button" class="btn-remove-fav" data-id="${item.id}" title="Retirer des favoris">
+            <button type="button" class="btn-remove-fav" data-id="${escapeHtml(item.id)}" title="Retirer des favoris">
               <i class="ph-bold ph-trash"></i>
             </button>
           </div>
