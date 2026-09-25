@@ -147,16 +147,16 @@ document.addEventListener('DOMContentLoaded', () => {
       switchTab(initialTab, false);
     }
 
+    // Auto-open requested stream from URL immediately in parallel
+    if (initialWatch) {
+      selectItem(initialWatch, false);
+    }
+
     await loadStats();
     await loadCountries();
     await loadMatches();
     await loadChannels(true);
     updateFavoritesBadge();
-
-    // Auto-open requested stream from URL
-    if (initialWatch) {
-      selectItem(initialWatch, false);
-    }
 
     // Background Auto-Refresh every 90s for live matches (silent update)
     setInterval(() => {
@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      if (!data.success || !data.item || (!data.streams || !data.streams.length)) {
+      if (!data.success || (!data.streams || !data.streams.length)) {
         if (player) {
           player.showError(true, 'Aucun flux disponible pour cet événement', 'Les diffuseurs n\'ont pas encore ouvert leur flux en direct. Réessayez dans un instant.');
         } else {
@@ -808,7 +808,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      await player.loadItem(data.item, data.streams || []);
+      const itemInfo = data.item || itemData || { id, title: 'Diffusion en Direct', category: 'Live' };
+      await player.loadItem(itemInfo, data.streams || []);
 
       // Sync player favorite button state
       const isFav = state.favorites.some(f => f.id === id);

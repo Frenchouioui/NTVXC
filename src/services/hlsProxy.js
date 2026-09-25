@@ -20,25 +20,45 @@ function getOriginFromReferer(ref) {
   }
 }
 
+import { fetchDliveRealStream } from './streamResolver.js';
+
 /**
  * Handle HLS playlist proxying and segment URL rewriting
  */
 export async function handleHlsProxy(req, res) {
-  const targetUrl = decodeUrlParam(req.query.url);
-  const referer = decodeUrlParam(req.query.ref) || CONFIG.NTV_BASE_URL;
+  let targetUrl = decodeUrlParam(req.query.url);
+  let referer = decodeUrlParam(req.query.ref) || CONFIG.NTV_BASE_URL;
+  const channelId = req.query.channel || req.query.channelId;
 
   if (!targetUrl || !targetUrl.startsWith('http')) {
     return res.status(400).send('Missing or invalid url parameter');
   }
 
   try {
-    const upstreamRes = await fetch(targetUrl, {
+    let upstreamRes = await fetch(targetUrl, {
       headers: {
         'User-Agent': CONFIG.USER_AGENT,
         'Referer': referer,
         'Origin': getOriginFromReferer(referer)
       }
     });
+
+    // SELF-HEALING: If token expired (403, 404, 410) and channelId is known, re-extract fresh stream!
+    if ((upstreamRes.status === 403 || upstreamRes.status === 404 || upstreamRes.status === 410) && channelId) {
+      console.warn(`[hlsProxy] Token expired for channel ${channelId} (${upstreamRes.status}), auto-healing with fresh token...`);
+      const freshData = await fetchDliveRealStream(channelId, true);
+      if (freshData && freshData.streamUrl) {
+        targetUrl = freshData.streamUrl;
+        referer = freshData.referer || referer;
+        upstreamRes = await fetch(targetUrl, {
+          headers: {
+            'User-Agent': CONFIG.USER_AGENT,
+            'Referer': referer,
+            'Origin': getOriginFromReferer(referer)
+          }
+        });
+      }
+    }
 
     if (!upstreamRes.ok) {
       return res.status(upstreamRes.status).send(`Upstream error: ${upstreamRes.statusText}`);
@@ -47,6 +67,7 @@ export async function handleHlsProxy(req, res) {
     const playlistText = await upstreamRes.text();
     const hostBase = `${req.protocol}://${req.get('host')}`;
     const targetUrlObj = new URL(targetUrl);
+    const channelParam = channelId ? `&channel=${encodeURIComponent(channelId)}` : '';
 
     // Rewrite lines in m3u8
     const lines = playlistText.split(/\r?\n/);
@@ -66,7 +87,7 @@ export async function handleHlsProxy(req, res) {
 
       // If it's a sub-playlist (.m3u8)
       if (trimmed.includes('.m3u8') || absoluteUri.includes('.m3u8')) {
-        return `${hostBase}/proxy/hls?url=${encodeURIComponent(absoluteUri)}&ref=${encodeURIComponent(referer)}`;
+        return `${hostBase}/proxy/hls?url=${encodeURIComponent(absoluteUri)}&ref=${encodeURIComponent(referer)}${channelParam}`;
       }
 
       // If it's a segment (.ts or other chunk)

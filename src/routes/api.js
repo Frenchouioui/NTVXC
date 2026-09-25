@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { CONFIG } from '../config.js';
 import { getChannels, getChannelById, getMatches, getMatchById, getMatchesStats, getUnifiedCalendar, getChannelsCount } from '../services/ntvApi.js';
-import { resolveStream } from '../services/streamResolver.js';
+import { resolveStream, getDliveEmbedUrl } from '../services/streamResolver.js';
 
 const router = Router();
 
@@ -203,32 +203,61 @@ router.get('/stream/:id', async (req, res) => {
 });
 
 /**
- * Clean embed player iframe wrapper (sandboxed, ad-shielded)
+ * Clean embed player iframe wrapper (sandboxed, ad-shielded, self-healing)
  */
-router.get('/embed/:channelId', (req, res) => {
+router.get('/embed/:channelId', async (req, res) => {
   const channelId = req.params.channelId.replace(/[^0-9]/g, '');
   if (!channelId) return res.status(400).send('Invalid channel ID');
 
-  const embedUrl = `https://dlive.sx/stream/stream-${channelId}.php`;
+  try {
+    const { fetchDliveRealStream } = await import('../services/streamResolver.js');
+    const hostBase = `${req.protocol}://${req.get('host')}`;
+    const dliveData = await fetchDliveRealStream(channelId);
 
-  const html = `<!DOCTYPE html>
+    let streamSrc = '';
+    if (dliveData && dliveData.streamUrl) {
+      streamSrc = `${hostBase}/proxy/hls?url=${encodeURIComponent(dliveData.streamUrl)}&ref=${encodeURIComponent(dliveData.referer)}&channel=${channelId}`;
+    }
+
+    const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NTVio • Lecteur Sécurisé #${channelId}</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    iframe { width: 100%; height: 100%; border: none; display: block; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+    video { width: 100%; height: 100%; object-fit: contain; }
+    .error-box { color: #f87171; font-family: sans-serif; text-align: center; padding: 20px; font-size: 14px; }
   </style>
 </head>
 <body>
-  <iframe src="${embedUrl}" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
+  ${streamSrc ? `<video id="videoPlayer" controls autoplay playsinline></video>
+  <script>
+    const v = document.getElementById('videoPlayer');
+    const src = ${JSON.stringify(streamSrc)};
+    if (window.Hls && window.Hls.isSupported()) {
+      const hls = new window.Hls({ lowLatencyMode: false, maxBufferLength: 30 });
+      hls.loadSource(src);
+      hls.attachMedia(v);
+      hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        v.play().catch(() => { v.muted = true; v.play(); });
+      });
+    } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src;
+      v.play().catch(() => { v.muted = true; v.play(); });
+    }
+  </script>` : `<div class="error-box">Flux actuellement indisponible. Veuillez réessayer dans un instant.</div>`}
 </body>
 </html>`;
 
-  res.send(html);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`Erreur de chargement du lecteur: ${err.message}`);
+  }
 });
 
 export default router;

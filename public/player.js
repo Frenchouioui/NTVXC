@@ -940,6 +940,16 @@ export class UniversalPlayer {
         this.playHls(proxyUrl);
       }, 600);
     } else {
+      // If proxy had a temporary network drop, check if there's another in-app stream (e.g. secondary proxy or in-app embed)
+      const altInAppStream = this.currentSources.find((s, idx) => idx !== this.currentSourceIdx && s.url && (s.url.includes('/proxy/hls') || s.isEmbed));
+      if (altInAppStream) {
+        this.showLoading(true, 'Bascule automatique sur le diffuseur alternatif...');
+        setTimeout(() => {
+          this.selectSource(this.currentSources.indexOf(altInAppStream));
+        }, 800);
+        return;
+      }
+
       this.showError(true, 'Flux indisponible', 'Passage à la source suivante disponible...');
       setTimeout(() => {
         if (this.currentSources.length > 1) {

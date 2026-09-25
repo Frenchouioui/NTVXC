@@ -48,6 +48,11 @@ app.use('/api', apiRouter);
 // Stremio Addon Protocol Routes
 app.use('/', stremioRouter);
 
+// Direct embed route helper
+app.get('/embed/:channelId', (req, res) => {
+  res.redirect(307, `/api/embed/${req.params.channelId}`);
+});
+
 // App, Configure and Admin UI routes
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
