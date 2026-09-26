@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#05070b">
   <title>NTVio Live • Matchs en Direct & Chaînes TV 24/7</title>
   <meta name="description" content="Regardez tous les matchs de sport en direct et plus de 3 400 chaînes de télévision mondiales sans coupure avec le lecteur haute performance NTVio Live.">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
@@ -320,7 +323,38 @@
     <span id="toastMsg">Action effectuée</span>
   </div>
 
+  <!-- Native iOS Floating Bottom Navigation Bar (Mobile only) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button type="button" class="mobile-nav-item active" data-tab="sports">
+      <div class="mobile-nav-icon-wrap">
+        <i class="ph-bold ph-soccer-ball"></i>
+        <span class="mobile-nav-dot" id="mobileLiveDot"></span>
+      </div>
+      <span>Matchs</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-tab="tv">
+      <div class="mobile-nav-icon-wrap">
+        <i class="ph-bold ph-television"></i>
+        <span class="mobile-nav-badge" id="mobileTvBadge">3.4k</span>
+      </div>
+      <span>Chaînes</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-tab="schedule">
+      <div class="mobile-nav-icon-wrap">
+        <i class="ph-bold ph-calendar-blank"></i>
+      </div>
+      <span>Programme</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-tab="favorites">
+      <div class="mobile-nav-icon-wrap">
+        <i class="ph-bold ph-heart"></i>
+        <span class="mobile-nav-badge pill-rose" id="mobileFavBadge" style="display:none;">0</span>
+      </div>
+      <span>Favoris</span>
+    </button>
+  </nav>
+
   <!-- App Controller -->
-  <script type="module" src="/app.js?v=3.4"></script>
+  <script type="module" src="/app.js?v=3.5"></script>
 </body>
 </html>

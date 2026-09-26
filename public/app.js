@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 1. NAVIGATION & TABS ---
   function setupNavigation() {
-    navTabs.querySelectorAll('.nav-tab').forEach(tab => {
+    document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(tab => {
       tab.addEventListener('click', () => {
         const target = tab.getAttribute('data-tab');
         switchTab(target, true);
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function switchTab(tabName, sync = true) {
     state.currentTab = tabName;
-    navTabs.querySelectorAll('.nav-tab').forEach(t => {
+    document.querySelectorAll('.nav-tab, .mobile-nav-item').forEach(t => {
       t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
     });
 
@@ -233,8 +233,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (liveMatchBadge) {
         liveMatchBadge.textContent = `● ${data.liveMatchesCount} LIVE`;
       }
+      const mobileLiveDot = document.getElementById('mobileLiveDot');
+      if (mobileLiveDot) {
+        mobileLiveDot.style.display = data.liveMatchesCount > 0 ? 'block' : 'none';
+      }
       if (tvCountBadge && data.channelsCount) {
-        tvCountBadge.textContent = `${(data.channelsCount / 1000).toFixed(1)}k`;
+        const countStr = `${(data.channelsCount / 1000).toFixed(1)}k`;
+        tvCountBadge.textContent = countStr;
+        const mobileTvBadge = document.getElementById('mobileTvBadge');
+        if (mobileTvBadge) mobileTvBadge.textContent = countStr;
       }
     } catch (e) {
       console.warn('Stats fetch error:', e);

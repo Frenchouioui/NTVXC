@@ -26,7 +26,7 @@ export class UniversalPlayer {
     this.container.innerHTML = `
       <div class="player-wrapper" id="playerWrapper">
         <div class="video-container" id="videoContainer">
-          <video id="mainVideo" playsinline preload="auto"></video>
+          <video id="mainVideo" playsinline webkit-playsinline preload="auto"></video>
           <iframe id="embedIframe" style="display: none; overflow: hidden;" scrolling="no" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
 
           <!-- Loading Spinner Overlay -->
@@ -189,9 +189,35 @@ export class UniversalPlayer {
       this.closePlayerBtn.addEventListener('click', () => this.close());
     }
 
-    // Video click -> Play/Pause
-    this.videoEl.addEventListener('click', () => this.togglePlay());
-    this.playPauseBtn.addEventListener('click', () => this.togglePlay());
+    // Video click -> Play/Pause & controls overlay reveal on touch
+    let hideControlsTimeout = null;
+    const showControlsTemporarily = () => {
+      const container = this.container.querySelector('.video-container');
+      if (container) {
+        container.classList.add('controls-visible');
+        if (hideControlsTimeout) clearTimeout(hideControlsTimeout);
+        hideControlsTimeout = setTimeout(() => {
+          if (this.isPlaying) {
+            container.classList.remove('controls-visible');
+          }
+        }, 4000);
+      }
+    };
+
+    this.videoEl.addEventListener('click', () => {
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const container = this.container.querySelector('.video-container');
+      if (isTouch && container && !container.classList.contains('controls-visible')) {
+        showControlsTemporarily();
+        return;
+      }
+      this.togglePlay();
+      showControlsTemporarily();
+    });
+    this.playPauseBtn.addEventListener('click', () => {
+      this.togglePlay();
+      showControlsTemporarily();
+    });
 
     // Volume & Mute
     this.volumeSlider.addEventListener('input', (e) => {
@@ -1045,6 +1071,13 @@ export class UniversalPlayer {
       // Prioritize videoContainer for native top-layer fullscreen
       const videoContainer = this.container.querySelector('.video-container');
       const target = videoContainer || this.videoEl || document.documentElement;
+
+      // iOS Safari (iPhone) check: HTMLVideoElement has webkitEnterFullscreen, div does not have requestFullscreen
+      if (!target.requestFullscreen && !target.webkitRequestFullscreen && this.videoEl && this.videoEl.webkitEnterFullscreen) {
+        this.videoEl.webkitEnterFullscreen();
+        return;
+      }
+
       try {
         if (target.requestFullscreen) {
           await target.requestFullscreen({ navigationUI: 'hide' });
@@ -1054,6 +1087,8 @@ export class UniversalPlayer {
           target.mozRequestFullScreen();
         } else if (target.msRequestFullscreen) {
           target.msRequestFullscreen();
+        } else if (this.videoEl && this.videoEl.webkitEnterFullscreen) {
+          this.videoEl.webkitEnterFullscreen();
         }
       } catch (err) {
         if (this.videoEl && this.videoEl.webkitEnterFullscreen) {

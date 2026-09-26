@@ -158,6 +158,40 @@ body.app-body {
   scrollbar-width: thin;
 }
 
+/* Hide scrollbars cleanly on all horizontal pill/filter ribbons (iOS & Desktop touch) */
+.no-scrollbar,
+.nav-tabs,
+.server-pills-scroll,
+.filter-categories-scroll,
+.country-chips-scroll,
+.server-filter-pills,
+.calendar-days-scroll,
+.calendar-sports-bar,
+.broadcasters-scroll {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.nav-tabs::-webkit-scrollbar,
+.server-pills-scroll::-webkit-scrollbar,
+.filter-categories-scroll::-webkit-scrollbar,
+.country-chips-scroll::-webkit-scrollbar,
+.server-filter-pills::-webkit-scrollbar,
+.calendar-days-scroll::-webkit-scrollbar,
+.calendar-sports-bar::-webkit-scrollbar,
+.broadcasters-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Default state: mobile bottom nav is hidden on PC / Desktop */
+.mobile-bottom-nav {
+  display: none;
+}
+
 button {
   border: none;
   background: transparent;
@@ -3269,37 +3303,494 @@ body.theater-active .app-layout {
 }
 
 @media (max-width: 768px) {
+  :root {
+    --header-height-mobile: 60px;
+  }
+
+  body.app-body {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px));
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Compact Native iOS Header */
   .app-header {
     height: auto;
-    padding: 0.6rem 0;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: 0.5rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    position: sticky;
+    top: 0;
+    z-index: 1000;
   }
+
   .header-inner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-  .header-left {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.5rem;
+    padding: 0;
   }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Hide desktop header nav tabs on mobile — bottom tab bar handles it! */
+  .header-left .nav-tabs {
+    display: none !important;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+  }
+
+  .stats-pill {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.7rem;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-admin-header {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  .btn-admin-header span {
+    display: none;
+  }
+
+  /* Slim Full-Width Search Bar on Row 2 */
   .header-search {
     flex: 1 1 100%;
     max-width: 100%;
+    min-width: 0;
+    margin-top: 0.15rem;
   }
-  .btn-admin-header span {
-    display: inline;
-  }
-  .btn-admin-header {
+
+  .search-bar-wrap {
     padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-full);
   }
-  .nav-tabs {
-    overflow-x: auto;
+
+  /* Critical iOS Safari fix: 16px font-size prevents auto-zoom on input focus */
+  .search-bar-wrap input,
+  .tv-search-wrap input,
+  .calendar-search-wrap input,
+  input[type="text"] {
+    font-size: 16px !important;
+  }
+
+  .search-kbd-hint {
+    display: none !important;
+  }
+
+  /* Marquee Ticker on Mobile */
+  .live-marquee-bar {
+    padding: 0.35rem 0.75rem;
+  }
+  .marquee-tag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+  }
+
+  /* Native iOS Glass Floating Tab Bar */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
+    padding: 0.35rem 0.5rem env(safe-area-inset-bottom, 0px) 0.5rem;
+    background: rgba(8, 11, 18, 0.88);
+    backdrop-filter: var(--glass-blur-heavy);
+    -webkit-backdrop-filter: var(--glass-blur-heavy);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6), var(--glass-highlight);
+    align-items: center;
+    justify-content: space-around;
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    flex: 1;
+    height: 100%;
+    color: var(--text-muted);
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    border: none;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease, transform 0.18s ease;
+    padding: 0.2rem 0;
+  }
+
+  .mobile-nav-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+  }
+
+  .mobile-nav-item i {
+    font-size: 1.3rem;
+    transition: transform 0.2s var(--ease-out-expo);
+  }
+
+  .mobile-nav-dot {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 7px;
+    height: 7px;
+    background: var(--accent-live);
+    border-radius: 50%;
+    border: 1.5px solid #080b12;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+  }
+
+  .mobile-nav-badge {
+    position: absolute;
+    top: -2px;
+    right: -8px;
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.35);
+    color: #c7d2fe;
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    line-height: 1;
+  }
+
+  .mobile-nav-item.active {
+    color: #fff;
+  }
+
+  .mobile-nav-item.active i {
+    color: var(--accent-primary);
+    transform: translateY(-2px) scale(1.08);
+  }
+
+  .mobile-nav-item:active {
+    transform: scale(0.94);
+  }
+
+  /* Universal Player on Mobile */
+  .player-section {
+    margin-bottom: 1.25rem;
+    scroll-margin-top: calc(var(--header-height-mobile, 60px) + 20px);
+  }
+
+  .player-wrapper {
+    border-radius: var(--radius-lg);
+  }
+
+  .video-container {
+    aspect-ratio: 16 / 9;
+    max-height: 58vw;
+    min-height: 210px;
+  }
+
+  .player-meta-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .meta-title-row {
+    gap: 0.4rem;
+  }
+
+  .player-title {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    flex-wrap: wrap;
+  }
+
+  .player-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .meta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
     width: 100%;
   }
-  .matches-subgrid, .schedule-timeline-grid {
-    grid-template-columns: 1fr;
+
+  .meta-actions .btn-icon {
+    flex: 1 1 calc(50% - 0.3rem);
+    min-height: 40px;
+    justify-content: center;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.775rem;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  .meta-actions #theaterBtn {
+    display: none !important;
+  }
+
+  .meta-actions .btn-close-player {
+    flex: 1 1 100% !important;
+    min-height: 42px;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  /* Sources & Broadcaster Switching Panel on Mobile */
+  .sources-panel {
+    padding: 0.9rem 1rem;
+  }
+
+  .sources-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .sources-label {
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .sources-hint {
+    font-size: 0.7rem;
+  }
+
+  .broadcasters-scroll {
+    gap: 0.45rem;
+    padding: 0.2rem 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .broadcaster-tab, .broadcaster-chip {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .stream-modes-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+    padding: 0.5rem;
+  }
+
+  .stream-mode-btn {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.78125rem;
+  }
+
+  .external-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .external-links-chips {
+    gap: 0.45rem;
+  }
+
+  .external-redirect-chip {
+    min-height: 40px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  /* App Layout & Content Area on Mobile */
+  .app-layout {
+    padding: 0.85rem 0.75rem 2rem 0.75rem;
+  }
+
+  .server-selector-bar {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .server-bar-label {
+    display: none;
+  }
+
+  .server-pills-scroll {
+    gap: 0.4rem;
+  }
+
+  .match-server-pill {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .filter-categories-scroll {
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .filter-chip {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .filter-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .toggle-live-only {
+    font-size: 0.75rem;
+  }
+
+  .section-title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin: 1.25rem 0 0.85rem 0;
+    gap: 0.5rem;
+  }
+
+  .section-heading {
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+
+  .section-count {
+    font-size: 0.725rem;
+    white-space: nowrap;
+  }
+
+  .matches-subgrid, .schedule-timeline-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .match-card {
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-lg);
+  }
+
   .channels-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem;
+  }
+
+  .channel-card {
+    border-radius: var(--radius-md);
+  }
+
+  .channel-card-info {
+    padding: 0.6rem;
+  }
+
+  .channel-name {
+    font-size: 0.8125rem;
+  }
+
+  /* TV Tab Sub Bar */
+  .tv-sub-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .tv-search-wrap {
+    width: 100%;
+  }
+
+  .server-filter-pills {
+    width: 100%;
+    overflow-x: auto;
+    gap: 0.35rem;
+  }
+
+  .server-pill {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.725rem;
+    white-space: nowrap;
+  }
+
+  /* Calendar / Schedule Tab */
+  .calendar-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .calendar-days-scroll {
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .calendar-day-pill {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .calendar-search-wrap {
+    width: 100%;
+  }
+
+  .calendar-sports-bar {
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .schedule-subhead-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+}
+
+/* Extra small devices (iPhone SE, small Androids < 380px) */
+@media (max-width: 380px) {
+  .channels-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .brand-name {
+    font-size: 1.1rem;
   }
 }
